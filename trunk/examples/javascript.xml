@@ -1,0 +1,21 @@
+<project name="JavaScript" default="js.default">
+
+<target name="js.simpletest1">
+ <script language="javascript">
+   self.log("java script test #1");
+ </script>
+</target>
+
+<target name="js.simpletest2">
+ <script language="javascript">
+   self.log("java script test #2");
+ </script>
+</target>
+
+<target name="js.default">
+ <script language="javascript">
+   self.log("do nothing");
+ </script>
+</target>
+
+</project>
