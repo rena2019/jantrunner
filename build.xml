@@ -1,0 +1,23 @@
+<project name="jantrunner" default="build" >
+<!-- Java sources of the project -->
+<property name="dir.sources" value="./src" />
+<property name="name.project.archives" value="jantrunner" />
+<property name="dir.classes" value="./bin" />
+<property name="jars" value="ant.jar ant-launcher.jar ant-nodeps.jar bsh-2.0b5.jar" />
+	
+<target name="build">
+<delete file="${name.project.archives}.jar"/>
+<tstamp>
+  <format property="TODAY" pattern="yyyy-MM-dd HH:mm:ss" />
+</tstamp>
+<jar basedir="${dir.classes}" destfile="${name.project.archives}.jar" includes="*.class" >
+	<manifest>
+		<attribute name="Main-Class" value="AntRunner"/>
+		<attribute name="Built-By" value="${user.name}"/>
+		<attribute name="Class-Path" value="${jars}"/>
+		<!--attribute name="Class-Path" value="${manifest.class.path}" /-->
+		<attribute name="Built-Date" value="${TODAY}"/>
+	</manifest>				
+</jar>
+</target>
+</project>

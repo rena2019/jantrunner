@@ -1,0 +1,67 @@
+/*
+ * (c) by ReNa2019
+ */
+
+/* simple text field component that shows the beanshell script feature
+*/ 
+
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import javax.swing.JTextField;
+
+//Sample: simple Text
+public class AntTaskField extends JTextField implements AntRunnerComponent {
+	private String filename = "simpletxt.xml";
+	private String target = "build";
+	private AntRunner antrunner;
+
+	AntTaskField() {
+		super();
+	}
+
+	private void writeFile() {
+		try {
+			FileWriter outFile = new FileWriter(filename);
+			PrintWriter out = new PrintWriter(outFile);
+			out.println("<project name=\"anttaskfield\" default=\"" + target
+					+ "\" ><target name=\"" + target
+					+ "\">\r\n<echo message=\"" + this.getText()
+					+ "\"/>\r\n</target>\r\n</project>");
+			out.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public String[] getTaskNames() {
+		return new String[] { target };
+	}
+
+	public String getFilename() {
+		writeFile();
+		return filename;
+	}
+
+	//@Override
+	public void setRunner(AntRunner runner) {
+		antrunner = runner;
+	}
+
+	//@Override
+	public void setFilename(String filename) {
+		this.filename = filename;
+		// quick hack: xml -> text
+		Pattern pattern = Pattern.compile("echo message=\"([^\"]*)");
+		if (new File(filename).exists()) {
+		   Matcher matcher = pattern.matcher(antrunner.readFile(filename));
+		   if (matcher.find())
+			   this.setText(matcher.group(1));
+		}
+
+	}
+}
+
+return new AntTaskField();

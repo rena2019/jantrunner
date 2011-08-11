@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+<buttons>
+  <button name="#1" execute="js.simpletest1" file="javascript.xml" description="executes js.simpletest1"/>
+  <button name="#2" execute="js.simpletest2" file="javascript.xml" description="executes js.simpletest1"/>
+</buttons>
+<tabs>
+ <tab name="JS" type="TaskList" file="javascript.xml" />
+ <tab name="TextField" type="" source="AntTaskField.bsh" file="taskfield.xml" />
+</tabs>
+</config>
