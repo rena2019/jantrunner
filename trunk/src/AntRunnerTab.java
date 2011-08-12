@@ -103,23 +103,6 @@ public class AntRunnerTab extends JPanel {
 					 * task)); addToLog("execute " + task + " (" + file + ")" +
 					 * " done"); }
 					 */
-				} else if (comp instanceof AntTaskField) {
-					String file = ((AntTaskField) comp).getFilename();
-					// batch list on the right side
-					DefaultListModel model = ((DefaultListModel) antrunner
-							.getBatchList().getModel());
-					for (String taskname : ((AntTaskField) comp).getTaskNames()) {
-						antrunner.addToLog("execute " + taskname + " (" + file
-								+ ")");
-						antrunner.clearButtonBgColor((JButton) event
-								.getSource());
-						antrunner.setButtonBgColor((JButton) event.getSource(),
-								antrunner.executeAntTarget(
-										new File(file).getAbsolutePath(),
-										taskname));
-						antrunner.addToLog("execute " + taskname + " (" + file
-								+ ")" + " done");
-					}
 				} else {
 					String file = ((AntRunnerComponent) comp).getFilename();
 					// batch list on the right side
