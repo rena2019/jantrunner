@@ -4,9 +4,17 @@
 <property name="name.project.archives" value="jantrunner" />
 <property name="dir.classes" value="./bin" />
 <property name="jars" value="ant.jar ant-launcher.jar ant-nodeps.jar bsh-2.0b5.jar" />
+
+<path id="project.class.path">
+	<pathelement path="lib/bsh-2.0b5.jar" />
+	<!-- pathelement path="${java.class.path}" / -->
+</path>
 	
 <target name="build">
 <delete file="${name.project.archives}.jar"/>
+<mkdir dir="bin"/>
+
+<javac srcdir="src" destdir="bin" classpathref="project.class.path" />
 <tstamp>
   <format property="TODAY" pattern="yyyy-MM-dd HH:mm:ss" />
 </tstamp>
