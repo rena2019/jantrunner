@@ -18,4 +18,10 @@
  </script>
 </target>
 
+<target name="js.timer">
+ <script language="javascript">
+   self.log(new Date());
+ </script>
+</target>
+
 </project>

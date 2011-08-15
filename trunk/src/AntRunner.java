@@ -46,9 +46,11 @@ import org.apache.tools.ant.*;
  2011-06-29 more generic
  2011-07-08 more generic, AntTestPanel, setFilename added
  2011-08-11 editFile
+ 2011-08-15 update timer added
 
  TODO
-  - add update timer
+
+  - display only list if build.xml was supplied
   - sqlite for statistic/estimation of duration
   - AntTaskList: progressbar
 
@@ -58,6 +60,9 @@ public class AntRunner /* extends JFrame */{
 
 	private static final String LOG_FILE = "log.txt";
 	private static final String DEFAULT_CONFIG_XML = "config.xml";
+	private static final String VERSION = "0.1";
+
+
 	// TODO
 	String ANT_FILES_PATH = null;
 	String ANTRUNNER_BATCH_FILE = "antrunner.xml";
@@ -84,6 +89,7 @@ public class AntRunner /* extends JFrame */{
 
 	JTabbedPane tabbedPane;
 	Timer timer = null;
+	JTextField txtTimerField;
 
 	/**
 	 * Add the given info to the log file.
@@ -481,7 +487,7 @@ public class AntRunner /* extends JFrame */{
 	ActionListener toolsHandler = new ActionListener() {
 		public void actionPerformed(ActionEvent event) {
 			if (event.getSource() == chkPoll) {
-				setUpdateTimer();
+				//TODO setUpdateTimer();
 			}
 			if (event.getSource() == btnFileChooser) {
 				JFileChooser fc = new JFileChooser();
@@ -494,22 +500,34 @@ public class AntRunner /* extends JFrame */{
 		}
 	};
 
-	class Task extends TimerTask {
+	class MyTimerTask extends TimerTask {
+		private String filename;
+		private String target;
+		private long delay;
+		MyTimerTask(String filename, String target, long delay)
+		{
+			this.filename = filename;
+			this.target = target;
+			this.delay = delay;
+		}
 		public void run() {
-			System.out.println("TODO: do something");
-			setUpdateTimer();
+			//call ant task
+			executeAntTarget(filename, target);
+			setUpdateTimer(filename, target, delay);
 		}
 	}
 
-	void setUpdateTimer() {
+	void setUpdateTimer(String file, String task, long delay_sec) {
 		if (chkPoll.getModel().isSelected()) {
 			// set update timer
 			if (timer == null)
 				timer = new Timer(true);
-			timer.schedule(new Task(), 60 * 1000 /* 1min */);
+			txtTimerField.setText(file + ";" +  task);
+			timer.schedule(new MyTimerTask(file, task, delay_sec), delay_sec * 1000);
 		} else {
 			// clear update timer
-			timer.cancel();
+			if (timer != null)
+				timer.cancel();
 			timer = null;
 		}
 	}
@@ -597,6 +615,18 @@ public class AntRunner /* extends JFrame */{
 								child.getAttribute("source"));
 					}
 				}
+				
+				//timer
+				nodes = doc.getElementsByTagName("timer");
+				for (int i = 0; i < nodes.getLength(); i++) {
+					Node node = nodes.item(i);
+					if (node instanceof Element) {
+						// a child element to process
+						Element child = (Element) node;
+						setUpdateTimer(child.getAttribute("file"), child.getAttribute("execute"), Long.parseLong(child.getAttribute("interval")));
+					}
+				}
+				
 			} else {
 				System.err.print("File not found!");
 			}
@@ -645,7 +675,7 @@ public class AntRunner /* extends JFrame */{
 	 */
 	private void initialize() {
 
-		frame = new JFrame("jantrunner");
+		frame = new JFrame(String.format("jantrunner %s", VERSION));
 		frame.getContentPane().setLayout(new BorderLayout(5, 5));
 
 		// buttons
@@ -697,20 +727,30 @@ public class AntRunner /* extends JFrame */{
 		moreTab.setTransferHandler(new AntRunnerFileTransferHandler(moreTab
 				.getTaskList()));
 
-		// todo -> class / hide?
+		// todo -> move to class?
 		// tools tab
-		/*
-		 * JPanel panelTools = new JPanel(new BorderLayout());
-		 * tabbedPane.addTab("Tools", panelTools); JPanel panelButtons = new
-		 * JPanel(new FlowLayout()); panelTools.add(panelButtons,
-		 * BorderLayout.CENTER);
-		 * 
-		 * chkPoll = new JCheckBox("Poll");
-		 * chkPoll.addActionListener(toolsHandler); panelButtons.add(chkPoll);
-		 * btnFileChooser = new JButton("Browse...");
-		 * panelButtons.add(btnFileChooser);
-		 * btnFileChooser.addActionListener(toolsHandler); // tools tab
-		 */
+		if (true) {
+		
+		 JPanel panelTools = new JPanel(new BorderLayout());
+		 tabbedPane.addTab("Tools", panelTools);
+		 JPanel panelButtons = new JPanel(new FlowLayout()); 
+		 panelTools.add(panelButtons, BorderLayout.CENTER);
+		  
+		 chkPoll = new JCheckBox("Poll");
+		 chkPoll.setSelected(true);
+		 chkPoll.addActionListener(toolsHandler); 
+		 panelButtons.add(chkPoll);
+		 
+		 //todo label/list ?
+		 txtTimerField = new JTextField("build.xml;timer");
+		 txtTimerField.setEditable(false);
+		 panelButtons.add(txtTimerField);
+		 
+		 //btnFileChooser = new JButton("Browse...");
+		 //panelButtons.add(btnFileChooser);
+		 //btnFileChooser.addActionListener(toolsHandler);
+		 
+		}
 
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		// frame.setContentPane(panel);
