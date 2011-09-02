@@ -23,5 +23,39 @@
    self.log(new Date());
  </script>
 </target>
+	
+<target name="js.long.task">
+<script language="javascript"><![CDATA[
+	for(i=0; i < 10;i++){
+	//http://www.jajakarta.org/ant/ant-1.6.1/docs/en/manual/api/org/apache/tools/ant/taskdefs/Sleep.html
+	t = project.createTask("sleep");
+	t.setSeconds(1);
+	t.perform();
+	//self.log(i + "s");
+	}
+]]> 	
+</script>
+</target>
+
+<target name="js.fails.after.5seconds">
+<scriptdef language="javascript" name="myscr"><![CDATA[
+    // Exit http://cupi2.uniandes.edu.co/web/manualAnt/manual/api/org/apache/tools/ant/taskdefs/Exit.html
+    importClass(org.apache.tools.ant.taskdefs.Exit);
+
+	for(i=0; i < 5;i++){
+	//http://www.jajakarta.org/ant/ant-1.6.1/docs/en/manual/api/org/apache/tools/ant/taskdefs/Sleep.html
+	t = project.createTask("sleep");
+	t.setSeconds(1);
+	t.perform();
+	}
+]]> 	
+</scriptdef>
+<myscr />
+<fail message="failed!" />
+</target>
+
+<target name="js.fail">
+   <fail message="always fail" />
+</target>
 
 </project>

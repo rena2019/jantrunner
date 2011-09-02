@@ -17,9 +17,90 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 
+import org.apache.tools.ant.BuildEvent;
+import org.apache.tools.ant.BuildListener;
+
 import bsh.Interpreter;
 
 public class AntRunnerTab extends JPanel {
+	
+	private class ExecThread extends Thread implements BuildListener {
+
+		private AntRunnerComponent comp;
+		private String filename;
+		private String target;
+		private int percent = 0;
+
+		ExecThread(AntRunnerComponent comp) {
+			this.comp = comp;
+		}
+
+		/*
+		 * ExecThread(String threadName) { super(threadName); // Initialize thread.
+		 * start(); }
+		 */
+		public void run() {
+			comp.clearBuildStatus();
+			for (String taskname : comp.getTaskNames()) {
+				if (!antrunner.executeAntTarget(
+							comp.getFilename(),
+							taskname, this))
+						break;
+			
+		}
+	}//run
+
+		@Override
+		public void buildFinished(BuildEvent arg0) {
+			// TODO Auto-generated method stub
+			percent = 100;
+			comp.progress(percent, AntRunnerComponent.ProgressState.FINISHED, "TODO", arg0);
+		}
+
+		@Override
+		public void buildStarted(BuildEvent arg0) {
+			// TODO Auto-generated method stub
+			percent = 0;
+			comp.progress(percent, AntRunnerComponent.ProgressState.STARTED, "TODO", arg0);
+		}
+
+		@Override
+		public void messageLogged(BuildEvent arg0) {
+			// TODO Auto-generated method stub
+			//NO MESS
+			//percent += 1;
+			//comp.progress(percent, AntRunnerComponent.ProgressState.RUNNING, "TODO messageLogged", arg0);
+		}
+
+		@Override
+		public void targetFinished(BuildEvent arg0) {
+			// TODO Auto-generated method stub
+			percent = 100;
+			comp.progress(percent, AntRunnerComponent.ProgressState.FINISHED, "TODO targetFinished", arg0);
+		}
+
+		@Override
+		public void targetStarted(BuildEvent arg0) {
+			// TODO Auto-generated method stub
+			percent = 0;
+			comp.progress(percent, AntRunnerComponent.ProgressState.STARTED, "TODO targetStarted", arg0);
+		}
+
+		@Override
+		public void taskFinished(BuildEvent arg0) {
+			// TODO timer
+			percent += 5;
+			comp.progress(percent, AntRunnerComponent.ProgressState.RUNNING, "TODO taskFinished", arg0);
+		}
+
+		@Override
+		public void taskStarted(BuildEvent arg0) {
+			// TODO timer
+			percent += 5;
+			comp.progress(percent, AntRunnerComponent.ProgressState.RUNNING, "TODO taskStarted", arg0);
+		}
+	}//ExecThread
+	
 	// TaskList taskList;
 	JComponent comp;
 	JButton btnExecute;
@@ -70,22 +151,27 @@ public class AntRunnerTab extends JPanel {
 				}
 
 			} else if (event.getSource() == btnExecute) {
+				//execute task
 				if (comp instanceof AntTaskList) {
-					String file = ((AntTaskList) comp).getFilename();
+					
+					/*String file = ((AntTaskList) comp).getFilename();
 					// batch list on the right side
 					DefaultListModel model = ((DefaultListModel) antrunner
 							.getBatchList().getModel());
 					for (String taskname : ((AntTaskList) comp).getTaskNames()) {
-						antrunner.addToLog("execute " + taskname + " (" + file
-								+ ")");
+						//TODO log move to antrunner?
+						//antrunner.addToLog("execute " + taskname + " (" + file
+						//		+ ")");
 						antrunner.clearButtonBgColor((JButton) event
 								.getSource());
 						antrunner.setButtonBgColor((JButton) event.getSource(),
 								antrunner.executeAntTarget(
 										new File(file).getAbsolutePath(),
-										taskname));
-						antrunner.addToLog("execute " + taskname + " (" + file
-								+ ")" + " done");
+										taskname, (BuildListener)comp));
+						//antrunner.addToLog("execute " + taskname + " (" + file
+						//		+ ")" + " done");*/
+						ExecThread t = new ExecThread((AntRunnerComponent)comp);
+						t.start();
 					}
 					/*
 					 * //execute selected tasks int[] idx =
@@ -124,16 +210,18 @@ public class AntRunnerTab extends JPanel {
 				}
 
 			}
-		}
 	};
 
 	AntRunnerTab(AntRunner runner, JTabbedPane tabbedPane, String name,
 			String type, String file, String source) {
 		super(new BorderLayout());
 		antrunner = runner;
+		//use filename if tab name not set
+		if (name.equals(""))
+			name = (new File(file)).getName();
 		tabbedPane.addTab(name, this);
 		this.type = type;
-		if (type.equals("TaskList")) {
+		if (type.equals("TaskList") || type.equals("")) {
 			comp = new AntTaskList(file);
 			((AntRunnerComponent) comp).setRunner(runner);
 			((AntRunnerComponent) comp).setFilename(file);

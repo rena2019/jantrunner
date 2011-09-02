@@ -24,6 +24,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Desktop;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Toolkit;
 
@@ -47,21 +48,25 @@ import org.apache.tools.ant.*;
  2011-07-08 more generic, AntTestPanel, setFilename added
  2011-08-11 editFile
  2011-08-15 update timer added
+ 2011-08-21 task list with progress bar started
+ 2011-08-22 open build.xml file if given as command line parameter
+ 2011-08-23 execute target in thread
 
  TODO
 
-  - display only list if build.xml was supplied
-  - sqlite for statistic/estimation of duration
-  - AntTaskList: progressbar
+ - timer thread for soft progressbar in AntRunnerTab
+ - task -> target
+ - AntRunnerFileTransferHandler: more generic / with interface ?
+ - sqlite for statistic/estimation of avg./max. duration
 
  */
 
-public class AntRunner /* extends JFrame */{
+public class AntRunner /* extends JFrame */ {
 
+	private static final String TASK_LIST = "TaskList";
 	private static final String LOG_FILE = "log.txt";
 	private static final String DEFAULT_CONFIG_XML = "config.xml";
-	private static final String VERSION = "0.1";
-
+	private static final String VERSION = "0.2";
 
 	// TODO
 	String ANT_FILES_PATH = null;
@@ -90,6 +95,10 @@ public class AntRunner /* extends JFrame */{
 	JTabbedPane tabbedPane;
 	Timer timer = null;
 	JTextField txtTimerField;
+	JPanel panelTools;
+	AntRunnerTab moreTab;
+	
+	JSplitPane splitPane;
 
 	/**
 	 * Add the given info to the log file.
@@ -114,7 +123,7 @@ public class AntRunner /* extends JFrame */{
 		}
 	}
 
-	/** 
+	/**
 	 * execute given program and wait for process
 	 */
 	public String exec(String path) {
@@ -123,8 +132,10 @@ public class AntRunner /* extends JFrame */{
 
 	/**
 	 * execute given program
+	 * 
 	 * @param path
-	 * @param wait if true wait for process to exit
+	 * @param wait
+	 *            if true wait for process to exit
 	 * @return
 	 */
 	public String exec(String path, boolean wait) {
@@ -153,6 +164,7 @@ public class AntRunner /* extends JFrame */{
 
 	/**
 	 * edit the given file with the default system editor
+	 * 
 	 * @param filename
 	 */
 	public void editFile(String filename) {
@@ -169,6 +181,7 @@ public class AntRunner /* extends JFrame */{
 
 	/**
 	 * rename the given file (append date)
+	 * 
 	 * @param filepath
 	 */
 	void renameYYYYMMDD(String filepath) {
@@ -184,7 +197,8 @@ public class AntRunner /* extends JFrame */{
 	}
 
 	/**
-	 *  This method returns the selected radio button in a button group public
+	 * This method returns the selected radio button in a button group public
+	 * 
 	 * @param group
 	 * @return
 	 */
@@ -200,6 +214,7 @@ public class AntRunner /* extends JFrame */{
 
 	/**
 	 * write the given text to file
+	 * 
 	 * @param filename
 	 * @param text
 	 */
@@ -217,6 +232,7 @@ public class AntRunner /* extends JFrame */{
 
 	/**
 	 * read in the given text file
+	 * 
 	 * @param filename
 	 * @return
 	 */
@@ -239,6 +255,7 @@ public class AntRunner /* extends JFrame */{
 
 	/**
 	 * copy the given text file
+	 * 
 	 * @param src
 	 * @param dest
 	 */
@@ -285,6 +302,7 @@ public class AntRunner /* extends JFrame */{
 
 	/**
 	 * Set the color of the buton to default system color.
+	 * 
 	 * @param button
 	 */
 	void clearButtonBgColor(JButton button) {
@@ -294,21 +312,30 @@ public class AntRunner /* extends JFrame */{
 
 	/**
 	 * Execute the ant target of the given build file.
-	 * @param ant build filename      
-	 * @param ant target
+	 * 
+	 * @param ant
+	 *            build filename
+	 * @param ant
+	 *            target
 	 * @return true if successfully
 	 */
-	public boolean executeAntTarget(String filename, String target) {
+	public boolean executeAntTarget(String filename, String target,
+			BuildListener listener) {
 		boolean ret = true;
 		frame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 		File buildFile = new File(filename);
 		Project p = new Project();
-		// p.setUserProperty("ant.file", buildFile.getAbsolutePath());
+		p.setUserProperty("ant.file", buildFile.getAbsolutePath());
+		// TODO remove AntLogger logger = new AntLogger();
 		DefaultLogger consoleLogger = new DefaultLogger();
 		consoleLogger.setErrorPrintStream(System.err);
 		consoleLogger.setOutputPrintStream(System.out);
 		consoleLogger.setMessageOutputLevel(message_output_level);
+		// TODO remove p.setProjectReference(logger);
 		p.addBuildListener(consoleLogger);
+		// TODO remove p.addBuildListener(logger);
+		if (listener != null)
+			p.addBuildListener(listener);
 
 		try {
 			p.fireBuildStarted();
@@ -326,8 +353,13 @@ public class AntRunner /* extends JFrame */{
 		return ret;
 	}
 
+	public boolean executeAntTarget(String filename, String target) {
+		return executeAntTarget(filename, target, null);
+	}
+
 	/**
 	 * Returns the ant description of the given target.
+	 * 
 	 * @param file
 	 * @param target
 	 * @return
@@ -487,7 +519,7 @@ public class AntRunner /* extends JFrame */{
 	ActionListener toolsHandler = new ActionListener() {
 		public void actionPerformed(ActionEvent event) {
 			if (event.getSource() == chkPoll) {
-				//TODO setUpdateTimer();
+				// TODO setUpdateTimer();
 			}
 			if (event.getSource() == btnFileChooser) {
 				JFileChooser fc = new JFileChooser();
@@ -504,14 +536,15 @@ public class AntRunner /* extends JFrame */{
 		private String filename;
 		private String target;
 		private long delay;
-		MyTimerTask(String filename, String target, long delay)
-		{
+
+		MyTimerTask(String filename, String target, long delay) {
 			this.filename = filename;
 			this.target = target;
 			this.delay = delay;
 		}
+
 		public void run() {
-			//call ant task
+			// call ant task
 			executeAntTarget(filename, target);
 			setUpdateTimer(filename, target, delay);
 		}
@@ -522,8 +555,9 @@ public class AntRunner /* extends JFrame */{
 			// set update timer
 			if (timer == null)
 				timer = new Timer(true);
-			txtTimerField.setText(file + ";" +  task);
-			timer.schedule(new MyTimerTask(file, task, delay_sec), delay_sec * 1000);
+			txtTimerField.setText(file + ";" + task);
+			timer.schedule(new MyTimerTask(file, task, delay_sec),
+					delay_sec * 1000);
 		} else {
 			// clear update timer
 			if (timer != null)
@@ -558,6 +592,21 @@ public class AntRunner /* extends JFrame */{
 				+ taskname + "\">\r\n" + task + "\r\n</target>\r\n</project>";
 		writeFile(filename, antxml);
 	}
+	
+	private void readSingleBuildFile(String buildfile) {
+		new AntRunnerTab(this, tabbedPane,
+				new File(buildfile).getName(),
+				TASK_LIST,
+				buildfile,
+				"");
+	}
+	
+	/**
+	 * Hide batch list, "+" tab and tools tab.
+	 */
+	private void showSimpleGui() {
+		panelTools.setVisible(false);
+	}
 
 	// read in the config file and create the specified GUI
 	private void readConfig(String xmlFile) {
@@ -574,28 +623,33 @@ public class AntRunner /* extends JFrame */{
 				// Use the factory to create a builder
 				DocumentBuilder builder = factory.newDocumentBuilder();
 				Document doc = builder.parse(xmlFile);
+				NodeList nodes;
 				// Get a list of all elements in the document
 				// buttons ------------------
-				NodeList nodes = doc.getElementsByTagName("buttons").item(0)
-						.getChildNodes();
-				// System.out.println("XML Elements: ");
-				for (int i = 0; i < nodes.getLength(); i++) {
-					// Get element
-					// Element element = (Element)list.item(i);
-					// System.out.println(element.getNodeName());
-					Node node = nodes.item(i);
-					if (node instanceof Element) {
-						// a child element to process
-						Element child = (Element) node;
-						JButton btn = new AntRunnerButton(
-								child.getAttribute("name"),
-								child.getAttribute("file"),
-								child.getAttribute("execute"),
-								child.getAttribute("description"));
-						btn.addActionListener(buttonHandler);
-						panelCmdButtons.add(btn);
+				if (doc.getElementsByTagName("buttons").item(0) != null) {
+					nodes = doc.getElementsByTagName("buttons").item(0)
+							.getChildNodes();
+					// System.out.println("XML Elements: ");
+					for (int i = 0; i < nodes.getLength(); i++) {
+						// Get element
+						// Element element = (Element)list.item(i);
+						// System.out.println(element.getNodeName());
+						Node node = nodes.item(i);
+						if (node instanceof Element) {
+							// a child element to process
+							Element child = (Element) node;
+							JButton btn = new AntRunnerButton(
+									child.getAttribute("name"),
+									child.getAttribute("file"),
+									child.getAttribute("execute"),
+									child.getAttribute("description"));
+							btn.addActionListener(buttonHandler);
+							panelCmdButtons.add(btn);
+						}
 					}
-
+				} else {
+					// no buttons -> hide panel
+					panelCmdButtons.setVisible(false);
 				}
 				// tabs -------------------------
 				nodes = doc.getElementsByTagName("tabs").item(0)
@@ -615,18 +669,20 @@ public class AntRunner /* extends JFrame */{
 								child.getAttribute("source"));
 					}
 				}
-				
-				//timer
+
+				// timer
 				nodes = doc.getElementsByTagName("timer");
 				for (int i = 0; i < nodes.getLength(); i++) {
 					Node node = nodes.item(i);
 					if (node instanceof Element) {
 						// a child element to process
 						Element child = (Element) node;
-						setUpdateTimer(child.getAttribute("file"), child.getAttribute("execute"), Long.parseLong(child.getAttribute("interval")));
+						setUpdateTimer(child.getAttribute("file"),
+								child.getAttribute("execute"),
+								Long.parseLong(child.getAttribute("interval")));
 					}
 				}
-				
+
 			} else {
 				System.err.print("File not found!");
 			}
@@ -635,25 +691,55 @@ public class AntRunner /* extends JFrame */{
 			System.exit(1);
 		}
 	}
+	
+	/**
+	 * Check if given filename is an ant build file.
+	 * @param filename
+	 * @return True - ant file supplied.
+	 */
+	public boolean checkAntFile(String filename) {
+		File buildFile = new File(filename);
+		Project p = new Project();
+		p.setUserProperty("ant.file", buildFile.getAbsolutePath());
+		boolean ant_file = true;
+		try {
+			p.init();
+			ProjectHelper helper = ProjectHelper.getProjectHelper();
+			p.addReference("ant.projectHelper", helper);
+			helper.parse(p, buildFile);
+		} catch (BuildException e) {
+			ant_file = false;
+		}
+		return ant_file;
+	}
 
 	/**
 	 * Launch the application.
 	 */
+	private static String[] parms;
 	public static void main(String[] args) {
-
+		parms=args;
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
 					AntRunner window = new AntRunner();
-					File f = new File(DEFAULT_CONFIG_XML);
-					if (!f.exists()) {
-						JFileChooser fc = new JFileChooser();
-						if (JFileChooser.APPROVE_OPTION == fc
-								.showOpenDialog(null)) {
-							f = fc.getSelectedFile();
+					if (parms.length == 0) {
+						File f = new File(DEFAULT_CONFIG_XML);
+						if (!f.exists()) {
+							JFileChooser fc = new JFileChooser();
+							if (JFileChooser.APPROVE_OPTION == fc
+									.showOpenDialog(null)) {
+								f = fc.getSelectedFile();
+							}
 						}
+						window.readConfig(f.getAbsolutePath());
+						window.AddAdvGui();
 					}
-					window.readConfig(f.getAbsolutePath());
+					else if (window.checkAntFile(parms[0])) {
+						//load ant build file
+						window.readSingleBuildFile(parms[0]);
+						//window.showSimpleGui();
+					}
 					window.frame.pack();
 					window.frame.setVisible(true);
 				} catch (Exception e) {
@@ -669,6 +755,36 @@ public class AntRunner /* extends JFrame */{
 	public AntRunner() {
 		initialize();
 	}
+	
+	private void AddAdvGui()
+	{
+		// AntTask
+		moreTab = new AntRunnerTab(this, tabbedPane, "+",
+				TASK_LIST, null, "");
+		// add drag-drop handler
+		moreTab.setTransferHandler(new AntRunnerFileTransferHandler(moreTab
+				.getTaskList()));
+		
+		//tools tab		
+		panelTools = new JPanel(new BorderLayout());
+		tabbedPane.addTab("Tools", panelTools);
+		JPanel panelButtons = new JPanel(new FlowLayout());
+		panelTools.add(panelButtons, BorderLayout.CENTER);
+
+		chkPoll = new JCheckBox("Poll");
+		chkPoll.setSelected(true);
+		chkPoll.addActionListener(toolsHandler);
+		panelButtons.add(chkPoll);
+
+		// todo label/list ?
+		txtTimerField = new JTextField();
+		txtTimerField.setEditable(false);
+		panelButtons.add(txtTimerField);
+
+		// btnFileChooser = new JButton("Browse...");
+		// panelButtons.add(btnFileChooser);
+		// btnFileChooser.addActionListener(toolsHandler);
+	}
 
 	/**
 	 * Initialize the contents of the frame.
@@ -683,7 +799,7 @@ public class AntRunner /* extends JFrame */{
 		panelCmdButtons.setLayout(new FlowLayout());
 		frame.getContentPane().add(panelCmdButtons, BorderLayout.NORTH);
 
-		JSplitPane splitPane = new JSplitPane();
+		splitPane = new JSplitPane();
 		frame.getContentPane().add(splitPane, BorderLayout.CENTER);
 
 		// left side
@@ -720,37 +836,9 @@ public class AntRunner /* extends JFrame */{
 		tabbedPane = new JTabbedPane();
 		panelFrm.add(tabbedPane, BorderLayout.CENTER);
 
-		// AntTask
-		AntRunnerTab moreTab = new AntRunnerTab(this, tabbedPane, "+",
-				"TaskList", null, "");
-		// add drag-drop handler
-		moreTab.setTransferHandler(new AntRunnerFileTransferHandler(moreTab
-				.getTaskList()));
-
-		// todo -> move to class?
-		// tools tab
-		if (true) {
 		
-		 JPanel panelTools = new JPanel(new BorderLayout());
-		 tabbedPane.addTab("Tools", panelTools);
-		 JPanel panelButtons = new JPanel(new FlowLayout()); 
-		 panelTools.add(panelButtons, BorderLayout.CENTER);
-		  
-		 chkPoll = new JCheckBox("Poll");
-		 chkPoll.setSelected(true);
-		 chkPoll.addActionListener(toolsHandler); 
-		 panelButtons.add(chkPoll);
-		 
-		 //todo label/list ?
-		 txtTimerField = new JTextField("build.xml;timer");
-		 txtTimerField.setEditable(false);
-		 panelButtons.add(txtTimerField);
-		 
-		 //btnFileChooser = new JButton("Browse...");
-		 //panelButtons.add(btnFileChooser);
-		 //btnFileChooser.addActionListener(toolsHandler);
-		 
-		}
+
+		
 
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		// frame.setContentPane(panel);
