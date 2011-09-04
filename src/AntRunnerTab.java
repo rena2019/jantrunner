@@ -152,7 +152,8 @@ public class AntRunnerTab extends JPanel {
 
 			} else if (event.getSource() == btnExecute) {
 				//execute task
-				if (comp instanceof AntTaskList) {
+				//TODO check
+				if (true /*comp instanceof AntTaskList*/) {
 					
 					/*String file = ((AntTaskList) comp).getFilename();
 					// batch list on the right side
@@ -221,7 +222,7 @@ public class AntRunnerTab extends JPanel {
 			name = (new File(file)).getName();
 		tabbedPane.addTab(name, this);
 		this.type = type;
-		if (type.equals("TaskList") || type.equals("")) {
+		if ((type.equals("TaskList") || type.equals("")) && source.equals("")) {
 			comp = new AntTaskList(file);
 			((AntRunnerComponent) comp).setRunner(runner);
 			((AntRunnerComponent) comp).setFilename(file);
