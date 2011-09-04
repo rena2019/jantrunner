@@ -11,6 +11,7 @@ import java.io.PrintWriter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.JTextField;
+import org.apache.tools.ant.BuildEvent;
 
 //Sample: simple Text
 public class AntTaskField extends JTextField implements AntRunnerComponent {
@@ -61,6 +62,14 @@ public class AntTaskField extends JTextField implements AntRunnerComponent {
 			   this.setText(matcher.group(1));
 		}
 
+	}
+	
+	//@Override
+	public void clearBuildStatus() {
+	}
+	
+	//@Override
+	public void progress(int percent, AntRunnerComponent.ProgressState state, String info, BuildEvent event) {
 	}
 }
 
