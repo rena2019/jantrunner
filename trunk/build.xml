@@ -3,7 +3,7 @@
 <property name="dir.sources" value="./src" />
 <property name="name.project.archives" value="jantrunner" />
 <property name="dir.classes" value="./bin" />
-<property name="jars" value="ant.jar ant-launcher.jar ant-nodeps.jar bsh-2.0b5.jar" />
+<property name="jars" value="lib/ant.jar lib/ant-launcher.jar lib/ant-nodeps.jar lib/bsh-2.0b5.jar" />
 
 <path id="project.class.path">
 	<pathelement path="lib/bsh-2.0b5.jar" />
