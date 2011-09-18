@@ -1,12 +1,12 @@
 <project name="JavaScript" default="js.default">
 
-<target name="js.simpletest1">
+<target name="js.simpletest1" description="simple test #1">
  <script language="javascript">
    self.log("java script test #1");
  </script>
 </target>
 
-<target name="js.simpletest2">
+<target name="js.simpletest2" description="simple test #2">
  <script language="javascript">
    self.log("java script test #2");
  </script>
@@ -18,7 +18,7 @@
  </script>
 </target>
 
-<target name="js.timer">
+<target name="js.timer" description="timer - display date">
  <script language="javascript">
    self.log(new Date());
  </script>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <config>
-<!-- timer interval="2" execute="js.timer" file="javascript.xml" / -->
+<timer interval="2" execute="js.timer" file="javascript.xml" />
 <!-- buttons>
   <button name="#1" execute="js.simpletest1" file="javascript.xml" description="executes js.simpletest1"/>
   <button name="#2" execute="js.simpletest2" file="javascript.xml" description="executes js.simpletest1"/>

@@ -6,6 +6,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
+import java.awt.event.InputEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
@@ -218,8 +219,14 @@ class AntTaskList extends JList implements AntRunnerComponent /*, BuildListener*
 
 	MouseAdapter mouseHandler = new MouseAdapter() {
 		public void mouseClicked(MouseEvent e) {
-			if (e.getClickCount() == 2) {
+			//right mouse button click? -> edit
+			if (e.getClickCount() == 1 && (e.getModifiers() & InputEvent.BUTTON3_MASK)
+					== InputEvent.BUTTON3_MASK) {
 				antrunner.editFile(filename);
+			//double click? -> run
+			}else if (e.getClickCount() == 2 && (e.getModifiers() & InputEvent.BUTTON1_MASK)
+					== InputEvent.BUTTON1_MASK) {
+				//TODO antrunner.run();
 			}
 		}
 	};
