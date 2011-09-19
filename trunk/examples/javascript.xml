@@ -18,15 +18,31 @@
  </script>
 </target>
 
-<target name="js.timer" description="timer - display date">
+<target name="js.timer" description="timer - display date (each 5 seconds)">
  <script language="javascript">
    self.log(new Date());
+   t = project.createTask("sleep");
+	 t.setSeconds(5);
+	 t.perform();
  </script>
 </target>
 	
-<target name="js.long.task">
+<target name="js.long.task.10s">
 <script language="javascript"><![CDATA[
 	for(i=0; i < 10;i++){
+	//http://www.jajakarta.org/ant/ant-1.6.1/docs/en/manual/api/org/apache/tools/ant/taskdefs/Sleep.html
+	t = project.createTask("sleep");
+	t.setSeconds(1);
+	t.perform();
+	//self.log(i + "s");
+	}
+]]> 	
+</script>
+</target>
+
+<target name="js.long.task.20s">
+<script language="javascript"><![CDATA[
+	for(i=0; i < 20;i++){
 	//http://www.jajakarta.org/ant/ant-1.6.1/docs/en/manual/api/org/apache/tools/ant/taskdefs/Sleep.html
 	t = project.createTask("sleep");
 	t.setSeconds(1);

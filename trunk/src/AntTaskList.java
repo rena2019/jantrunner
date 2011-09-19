@@ -153,7 +153,6 @@ class AntTaskList extends JList implements AntRunnerComponent /*, BuildListener*
 
 			// clear list
 			((DefaultListModel) this.getModel()).clear();
-			this.setPrototypeCellValue("Index 1234567890");
 			File buildfile = new File(filename);
 			Project project = new Project();
 			project.init();
@@ -186,6 +185,7 @@ class AntTaskList extends JList implements AntRunnerComponent /*, BuildListener*
 			}
 			progress = new int[((DefaultListModel) this.getModel()).getSize()];
 			passed = new boolean[((DefaultListModel) this.getModel()).getSize()];
+			this.setPrototypeCellValue("Index 1234567890");
 		} catch (Exception ex) {
 			System.err.println(ex.toString());
 			return false;
@@ -314,7 +314,7 @@ class AntTaskList extends JList implements AntRunnerComponent /*, BuildListener*
 							running_target_index = this.getIndex(event.getTarget().getName());
 							progress[running_target_index] = 0; //TODO percent
 							repaint();
-						} 
+						}
 						break;
 						
 			case RUNNING: 	if (running_target_index >= 0) {
