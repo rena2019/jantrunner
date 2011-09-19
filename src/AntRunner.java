@@ -52,6 +52,7 @@ import org.apache.tools.ant.*;
  2011-08-21 target list with progress bar started
  2011-08-22 open build.xml file if given as command line parameter
  2011-08-23 execute target in thread
+ 2011-09-18 Statistics class added
 
  TODO
 
@@ -72,6 +73,7 @@ public class AntRunner /* extends JFrame */ {
 	// TODO
 	String ANT_FILES_PATH = null;
 	String ANTRUNNER_BATCH_FILE = "antrunner.xml";
+	String STATISTICS_DB = "antrunner.db";
 
 	String LIST_SEPARATOR = "---------------------------";
 
@@ -99,6 +101,7 @@ public class AntRunner /* extends JFrame */ {
 	AntRunnerTab moreTab;
 	
 	JSplitPane splitPane;
+	private Statistics statistics;
 
 	/**
 	 * Add the given info to the log file.
@@ -336,6 +339,7 @@ public class AntRunner /* extends JFrame */ {
 	public boolean executeAntTarget(String filename, String target,
 			BuildListener listener) {
 		boolean ret = true;
+		Date dateStart = new Date();
 		frame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 		File buildFile = new File(filename);
 		Project p = new Project();
@@ -359,7 +363,14 @@ public class AntRunner /* extends JFrame */ {
 			helper.parse(p, buildFile);
 			p.executeTarget(target);
 			p.fireBuildFinished(null);
-		} catch (BuildException e) {
+			Date dateEnd = new Date();
+			SimpleDateFormat formatNew = new SimpleDateFormat("s.SSS");
+			Format formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			//calculate duration
+			double duration = Double.parseDouble(formatNew.format(dateEnd.getTime() - dateStart.getTime()));
+			//add to db
+			statistics.addValues(formatter.format(dateEnd), filename, target, duration );
+		} catch (Exception e) {
 			p.fireBuildFinished(e);
 			ret = false;
 		}
@@ -369,6 +380,10 @@ public class AntRunner /* extends JFrame */ {
 
 	public boolean executeAntTarget(String filename, String target) {
 		return executeAntTarget(filename, target, null);
+	}
+	
+	public Statistics getStatistics() {
+		return statistics;
 	}
 
 	/**
@@ -735,7 +750,7 @@ public class AntRunner /* extends JFrame */ {
 	 */
 	private static String[] parms;
 	public static void main(String[] args) {
-		parms=args;
+		parms = args;
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
@@ -771,6 +786,11 @@ public class AntRunner /* extends JFrame */ {
 	 */
 	public AntRunner() {
 		initialize();
+		try {
+			statistics = new Statistics(STATISTICS_DB);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	private void AddAdvGui()
