@@ -21,28 +21,27 @@ public class ExecuteThread extends Thread implements BuildListener {
 	private JButton button = null;
 	private double lastDuration = 0;
 	Timer timer = null;
+	private Date dateStart;
 
 	ExecuteThread(AntRunner antrunner, AntRunnerComponent comp, JButton button) {
 		this.antrunner = antrunner;
 		this.comp = comp;
 		this.button = button;
-		//TODO get/calculte
-		
 	}
 	
 	private class ProgressTimerTask extends TimerTask {
 		private String filename;
 		private String target;
-		private Date dateStart = new Date();
 		//private long delay;
 
 		ProgressTimerTask(String filename, String target) {
+			dateStart = new Date();
 			this.filename = filename;
 			this.target = target;
 			try {
 				lastDuration = antrunner.getStatistics().getLastDuration(filename, target);
+				//System.out.println("lastDuration: " + lastDuration);
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
 				lastDuration = 0;
 			}
 		}
@@ -54,15 +53,11 @@ public class ExecuteThread extends Thread implements BuildListener {
 				if (percent > 95)
 					percent = 95;
 			}
+			//System.out.println("percent: " + percent);
 			updateProgress(filename, target, (int)percent);
-			System.out.println("per" + percent);
+			
 		}
-		/*private void setUpdateTimer(String filename, String target) {
-			if (timer == null)
-				timer = new Timer(true);
-			timer.scheduleAtFixedRate(new ProgressTimerTask(filename, target),
-					0, 500);
-		}*/
+		
 	}//ProgressTimerTask
 
 	public void run() {
@@ -72,8 +67,8 @@ public class ExecuteThread extends Thread implements BuildListener {
 		comp.clearBuildStatus();
 		for (String targetname : comp.getTaskNames()) {
 			String filename = comp.getFilename();
-			//TODO start update timer
-			TimerTask task = new ProgressTimerTask(filename, targetname);
+			//start update timer
+			ProgressTimerTask task = new ProgressTimerTask(filename, targetname);
 			Timer timer = new Timer();
 			timer.scheduleAtFixedRate(task, 0, 500);
 			errorOccured = !antrunner.executeAntTarget(filename,
@@ -87,12 +82,12 @@ public class ExecuteThread extends Thread implements BuildListener {
 			antrunner.setButtonBgColor(button, !errorOccured);
 	}// run
 	
-	private void updateProgress(String filename, String target /* TODO BuildEvent arg0 */, int percent) {
+	private void updateProgress(String filename, String target, int percent) {
 		//TODO
-		//this.percent = percent;
+		this.percent = percent;
 		comp.progress(percent, AntRunnerComponent.ProgressState.RUNNING,
 				"TODO updateProgress", null);
-		System.out.print("updateProgress" + filename + ", " + target);
+		//System.out.print("updateProgress: " + filename + ", " + target);
 	}
 
 	@Override
@@ -139,16 +134,16 @@ public class ExecuteThread extends Thread implements BuildListener {
 	@Override
 	public void taskFinished(BuildEvent arg0) {
 		// TODO timer
-		percent += 1;
+		/*percent += 1;
 		comp.progress(percent, AntRunnerComponent.ProgressState.RUNNING,
-				"TODO taskFinished", arg0);
+				"TODO taskFinished", arg0);*/
 	}
 
 	@Override
 	public void taskStarted(BuildEvent arg0) {
 		// TODO timer
-		percent += 1;
+		/*percent += 1;
 		comp.progress(percent, AntRunnerComponent.ProgressState.RUNNING,
-				"TODO taskStarted", arg0);
+				"TODO taskStarted", arg0);*/
 	}
 }// ExecuteThread
