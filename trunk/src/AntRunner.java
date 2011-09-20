@@ -132,6 +132,7 @@ public class AntRunner /* extends JFrame */ {
 	public String exec(String path) {
 		return exec(path, true);
 	}
+	
 
 	/**
 	 * execute given program
@@ -704,6 +705,7 @@ public class AntRunner /* extends JFrame */ {
 
 				// timer
 				nodes = doc.getElementsByTagName("timer");
+				if (nodes.getLength() > 0) {
 				for (int i = 0; i < nodes.getLength(); i++) {
 					Node node = nodes.item(i);
 					if (node instanceof Element) {
@@ -713,6 +715,11 @@ public class AntRunner /* extends JFrame */ {
 								child.getAttribute("execute"),
 								Long.parseLong(child.getAttribute("interval")));
 					}
+				}
+				} else {
+					//disable timer checkbox 
+					chkPoll.setSelected(false);
+					chkPoll.setEnabled(false);
 				}
 
 			} else {

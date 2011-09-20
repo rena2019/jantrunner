@@ -18,6 +18,10 @@
  </script>
 </target>
 
+<target name="x.exec">
+ <exec executable="notepad" />
+</target>
+
 <target name="js.timer" description="timer - display date (each 5 seconds)">
  <script language="javascript">
    self.log(new Date());
