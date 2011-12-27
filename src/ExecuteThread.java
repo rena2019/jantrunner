@@ -10,6 +10,7 @@ import javax.swing.JButton;
 
 import org.apache.tools.ant.BuildEvent;
 import org.apache.tools.ant.BuildListener;
+import org.apache.tools.ant.Project;
 
 public class ExecuteThread extends Thread implements BuildListener {
 
@@ -41,6 +42,7 @@ public class ExecuteThread extends Thread implements BuildListener {
 			try {
 				lastDuration = antrunner.getStatistics().getLastDuration(filename, target);
 				//System.out.println("lastDuration: " + lastDuration);
+				antrunner.addToLog("lastDuration: " + lastDuration, Project.MSG_DEBUG);
 			} catch (Exception e) {
 				lastDuration = 0;
 			}
@@ -90,7 +92,7 @@ public class ExecuteThread extends Thread implements BuildListener {
 		//System.out.print("updateProgress: " + filename + ", " + target);
 	}
 
-	@Override
+	//@Override
 	public void buildFinished(BuildEvent arg0) {
 		// TODO Auto-generated method stub
 		percent = 100;
@@ -98,7 +100,7 @@ public class ExecuteThread extends Thread implements BuildListener {
 				"TODO", arg0);
 	}
 
-	@Override
+	//@Override
 	public void buildStarted(BuildEvent arg0) {
 		// TODO Auto-generated method stub
 		percent = 0;
@@ -106,7 +108,7 @@ public class ExecuteThread extends Thread implements BuildListener {
 				"TODO", arg0);
 	}
 
-	@Override
+	//@Override
 	public void messageLogged(BuildEvent arg0) {
 		// TODO Auto-generated method stub
 		// NO MESS
@@ -115,7 +117,7 @@ public class ExecuteThread extends Thread implements BuildListener {
 		// "TODO messageLogged", arg0);
 	}
 
-	@Override
+	//@Override
 	public void targetFinished(BuildEvent arg0) {
 		// TODO Auto-generated method stub
 		percent = 100;
@@ -123,7 +125,7 @@ public class ExecuteThread extends Thread implements BuildListener {
 				"TODO targetFinished", arg0);
 	}
 
-	@Override
+	//@Override
 	public void targetStarted(BuildEvent arg0) {
 		// TODO Auto-generated method stub
 		percent = 0;
@@ -131,7 +133,7 @@ public class ExecuteThread extends Thread implements BuildListener {
 				"TODO targetStarted", arg0);
 	}
 
-	@Override
+	//@Override
 	public void taskFinished(BuildEvent arg0) {
 		// TODO timer
 		/*percent += 1;
@@ -139,7 +141,7 @@ public class ExecuteThread extends Thread implements BuildListener {
 				"TODO taskFinished", arg0);*/
 	}
 
-	@Override
+	//@Override
 	public void taskStarted(BuildEvent arg0) {
 		// TODO timer
 		/*percent += 1;

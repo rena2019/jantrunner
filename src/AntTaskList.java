@@ -9,6 +9,7 @@ import java.awt.Graphics;
 import java.awt.event.InputEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionAdapter;
 import java.io.File;
 import java.util.Collections;
@@ -48,7 +49,7 @@ class XThread extends Thread {
 	}
 }
 
-class AntTaskList extends JList implements AntRunnerComponent /*, BuildListener*/ {
+class AntTaskList extends JList implements AntRunnerComponent, MouseListener /*, BuildListener*/ {
 
 	private String filename = "";
 	private AntRunner antrunner;
@@ -65,7 +66,7 @@ class AntTaskList extends JList implements AntRunnerComponent /*, BuildListener*
 			XThread t = new XThread(this, filename);
 			t.start();
 		}
-		this.addMouseListener(mouseHandler);
+		this.addMouseListener(this);
 		this.addMouseMotionListener(mouseMotionHandler);
 
 		// http://www.jyloo.com/news/?pubId=1306947485000
@@ -217,6 +218,7 @@ class AntTaskList extends JList implements AntRunnerComponent /*, BuildListener*
 		return s;
 	}// getAntDescription
 
+	/*
 	MouseAdapter mouseHandler = new MouseAdapter() {
 		public void mouseClicked(MouseEvent e) {
 			//right mouse button click? -> edit
@@ -226,10 +228,11 @@ class AntTaskList extends JList implements AntRunnerComponent /*, BuildListener*
 			//double click? -> run
 			}else if (e.getClickCount() == 2 && (e.getModifiers() & InputEvent.BUTTON1_MASK)
 					== InputEvent.BUTTON1_MASK) {
-				//TODO antrunner.run();
+				//antrunner.run();
+				antrunner.executeSelectedTargets((AntRunnerComponent)this, null);
 			}
 		}
-	};
+	};*/
 
 	MouseMotionAdapter mouseMotionHandler = new MouseMotionAdapter() {
 		public void mouseMoved(MouseEvent e) {
@@ -306,6 +309,9 @@ class AntTaskList extends JList implements AntRunnerComponent /*, BuildListener*
 	//@Override
 	public void progress(int percent, ProgressState state, String info, BuildEvent event) {
 		// TODO System.out.println("progress----- info: " + info);
+		if (antrunner != null) {
+			//
+		}
 		switch (state)
 		{
 			case STARTED: if (event.getTarget() != null) {
@@ -336,7 +342,7 @@ class AntTaskList extends JList implements AntRunnerComponent /*, BuildListener*
 		}
 	}
 
-	@Override
+	//@Override
 	public void clearBuildStatus() {
 		running_target_index = -1;
 		for(int i=0; i < progress.length; i++) {
@@ -344,5 +350,37 @@ class AntTaskList extends JList implements AntRunnerComponent /*, BuildListener*
 			passed[i] = true;
 		}
 		repaint();
+	}
+
+	public void mouseClicked(MouseEvent e) {
+		//right mouse button click? -> edit
+		if (e.getClickCount() == 1 && (e.getModifiers() & InputEvent.BUTTON3_MASK)
+				== InputEvent.BUTTON3_MASK) {
+			antrunner.editFile(filename);
+		//double click? -> run
+		}else if (e.getClickCount() == 2 && (e.getModifiers() & InputEvent.BUTTON1_MASK)
+				== InputEvent.BUTTON1_MASK) {
+			antrunner.executeSelectedTargets((AntRunnerComponent)this, null);
+		}
+	}
+
+	public void mouseEntered(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void mouseExited(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void mousePressed(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void mouseReleased(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
 	}
 }// AntTaskList
