@@ -53,6 +53,8 @@ import org.apache.tools.ant.*;
  2011-08-22 open build.xml file if given as command line parameter
  2011-08-23 execute target in thread
  2011-09-18 Statistics class added
+ 2011-12-22 added: edit with notepad
+ 2011-12-27 tasklist: double click starts task
 
  TODO
 
@@ -82,6 +84,7 @@ public class AntRunner /* extends JFrame */ {
 
 	// global variables
 	Project antproject;
+	Project project;
 	String last_descr_build_file = "";
 	JFrame frame;
 
@@ -106,7 +109,7 @@ public class AntRunner /* extends JFrame */ {
 	/**
 	 * Add the given info to the log file.
 	 */
-	public void addToLog(String info) {
+	public void addToLog(String info, int loglevel) {
 		try {
 			BufferedWriter out = new BufferedWriter(new FileWriter(LOG_FILE,
 					true));
@@ -116,7 +119,10 @@ public class AntRunner /* extends JFrame */ {
 			String s = formatter.format(dt);
 			s = s + " " + System.getenv("COMPUTERNAME") + " " + info;
 			out.write(s);
-			System.out.println(s);
+			if (project != null)
+				project.log(s);
+			else
+				System.out.println(s);
 			out.newLine();
 			// Close the output stream
 			out.close();
@@ -172,6 +178,7 @@ public class AntRunner /* extends JFrame */ {
 	 * @param filename
 	 */
 	public void editFile(String filename) {
+		boolean startNotepad = false;
 		try {
 			Desktop desktop = null;
 			if (Desktop.isDesktopSupported()) {
@@ -181,8 +188,19 @@ public class AntRunner /* extends JFrame */ {
 				desktop.edit(f.getCanonicalFile());
 			}
 			
-		} catch (IOException ioe) {
+		} catch (Exception ioe) {
 			ioe.printStackTrace();
+			startNotepad = true;
+		}
+		//try to open notepad if edit method failed
+		if (startNotepad) {
+			try {
+				String s = "notepad.exe " + new File(filename).getCanonicalPath();
+				exec(s);
+			}
+			catch(Exception ex) {
+				ex.printStackTrace();;
+			}
 		}
 	}
 
@@ -343,27 +361,27 @@ public class AntRunner /* extends JFrame */ {
 		Date dateStart = new Date();
 		frame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 		File buildFile = new File(filename);
-		Project p = new Project();
-		p.setUserProperty("ant.file", buildFile.getAbsolutePath());
+		project = new Project();
+		project.setUserProperty("ant.file", buildFile.getAbsolutePath());
 		// TODO remove AntLogger logger = new AntLogger();
 		DefaultLogger consoleLogger = new DefaultLogger();
 		consoleLogger.setErrorPrintStream(System.err);
 		consoleLogger.setOutputPrintStream(System.out);
 		consoleLogger.setMessageOutputLevel(message_output_level);
 		// TODO remove p.setProjectReference(logger);
-		p.addBuildListener(consoleLogger);
+		project.addBuildListener(consoleLogger);
 		// TODO remove p.addBuildListener(logger);
 		if (listener != null)
-			p.addBuildListener(listener);
+			project.addBuildListener(listener);
 
 		try {
-			p.fireBuildStarted();
-			p.init();
+			project.fireBuildStarted();
+			project.init();
 			ProjectHelper helper = ProjectHelper.getProjectHelper();
-			p.addReference("ant.projectHelper", helper);
-			helper.parse(p, buildFile);
-			p.executeTarget(target);
-			p.fireBuildFinished(null);
+			project.addReference("ant.projectHelper", helper);
+			helper.parse(project, buildFile);
+			project.executeTarget(target);
+			project.fireBuildFinished(null);
 			Date dateEnd = new Date();
 			SimpleDateFormat formatNew = new SimpleDateFormat("s.SSS");
 			Format formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -372,7 +390,8 @@ public class AntRunner /* extends JFrame */ {
 			//add to db
 			statistics.addValues(formatter.format(dateEnd), filename, target, duration );
 		} catch (Exception e) {
-			p.fireBuildFinished(e);
+			project.fireBuildFinished(e);
+			project = null;
 			ret = false;
 		}
 		frame.setCursor(Cursor.getDefaultCursor());
@@ -401,7 +420,7 @@ public class AntRunner /* extends JFrame */ {
 
 			if (last_descr_build_file == "" || last_descr_build_file != file) {
 				ProjectHelper helper = ProjectHelper.getProjectHelper();
-				Project antproject = new Project();
+				antproject = new Project();
 				antproject.init();
 				antproject.addReference("ant.projectHelper", helper);
 				last_descr_build_file = file;
