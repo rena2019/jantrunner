@@ -1,0 +1,5 @@
+#What should be done to make the app better
+
+= ToDo =
+
+* select default target (in tasklist) on startup
