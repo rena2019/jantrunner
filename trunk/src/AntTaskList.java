@@ -1,5 +1,6 @@
 /*
- * (c) by ReNa2019
+ * (c) by ReNa2019 http://code.google.com/p/jantrunner/
+ * 
  */
 
 import java.awt.Color;
@@ -45,7 +46,7 @@ class XThread extends Thread {
 	public void run() {
 		// Display info about this particular thread
 		tasklist.addAntTasksToList(filename);
-		tasklist.setSelectedIndex(0);
+		//tasklist.setSelectedIndex(0);
 	}
 }
 
@@ -187,6 +188,9 @@ class AntTaskList extends JList implements AntRunnerComponent, MouseListener /*,
 			progress = new int[((DefaultListModel) this.getModel()).getSize()];
 			passed = new boolean[((DefaultListModel) this.getModel()).getSize()];
 			this.setPrototypeCellValue("Index 1234567890");
+			//set default selected = default target
+			String defaultTarget = project.getDefaultTarget();
+			this.setSelectedIndex(((DefaultListModel) this.getModel()).indexOf(defaultTarget));
 		} catch (Exception ex) {
 			System.err.println(ex.toString());
 			return false;
@@ -217,6 +221,24 @@ class AntTaskList extends JList implements AntRunnerComponent, MouseListener /*,
 
 		return s;
 	}// getAntDescription
+	
+	private void selectDefaultTask() {
+		try {
+			File buildFile = new File(this.filename);
+
+			if (ant_build_file == "" || ant_build_file != this.filename) {
+				ProjectHelper helper = ProjectHelper.getProjectHelper();
+				ant_project = new Project();
+				ant_project.init();
+				ant_project.addReference("ant.projectHelper", helper);
+				ant_build_file = this.filename;
+				helper.parse(ant_project, buildFile);
+				String defaultTask = ant_project.getDefaultTarget();
+			}
+		} catch (Exception e) {
+			System.out.println(e.toString());
+		}
+	}
 
 	/*
 	MouseAdapter mouseHandler = new MouseAdapter() {
@@ -244,6 +266,8 @@ class AntTaskList extends JList implements AntRunnerComponent, MouseListener /*,
 				String description = list.getAntDescription(task);
 				if (description != null)
 					list.setToolTipText(description);
+				else
+					list.setToolTipText("");
 			}
 
 		}

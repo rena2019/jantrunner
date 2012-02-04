@@ -1,7 +1,8 @@
 import org.apache.tools.ant.BuildEvent;
 
 /*
- * (c) by ReNa2019
+ * (c) by ReNa2019 http://code.google.com/p/jantrunner/
+ * 
  */
 
 public interface AntRunnerComponent {

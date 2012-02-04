@@ -1,5 +1,6 @@
 /*
- * (c) by ReNa2019
+ * (c) by ReNa2019 http://code.google.com/p/jantrunner/
+ * 
  */
 
 import java.awt.EventQueue;
@@ -55,6 +56,7 @@ import org.apache.tools.ant.*;
  2011-09-18 Statistics class added
  2011-12-22 added: edit with notepad
  2011-12-27 tasklist: double click starts task
+ 2012-02-04 some fixes, color button, default selected target, dumpTable
 
  TODO
 
@@ -76,8 +78,6 @@ public class AntRunner /* extends JFrame */ {
 	String ANT_FILES_PATH = null;
 	String ANTRUNNER_BATCH_FILE = "antrunner.xml";
 	String STATISTICS_DB = "antrunner.db";
-
-	String LIST_SEPARATOR = "---------------------------";
 
 	// TODO config?
 	int message_output_level = Project.MSG_INFO;
@@ -444,9 +444,12 @@ public class AntRunner /* extends JFrame */ {
 
 			if (event.getSource() instanceof AntRunnerButton) {
 				AntRunnerButton btn = (AntRunnerButton) event.getSource();
-				// TODO color
-				executeAntTarget(new File(btn.file).getAbsolutePath(),
+				// clear color
+				clearButtonBgColor(btn);
+				boolean passed = executeAntTarget(new File(btn.file).getAbsolutePath(),
 						btn.target);
+				//set red/green upon status
+				setButtonBgColor((JButton)btn, passed);
 			}
 		}
 	};
