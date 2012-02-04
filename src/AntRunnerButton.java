@@ -1,5 +1,6 @@
 /*
- * (c) by ReNa2019
+ * (c) by ReNa2019 http://code.google.com/p/jantrunner/
+ * 
  */
 import javax.swing.JButton;
 

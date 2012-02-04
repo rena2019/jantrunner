@@ -1,4 +1,4 @@
-<project name="JavaScript" default="js.default">
+<project name="JavaScript" default="js.theDefaultTarget">
 
 <target name="js.simpletest1" description="simple test #1">
  <script language="javascript">
@@ -12,7 +12,7 @@
  </script>
 </target>
 
-<target name="js.default">
+<target name="js.theDefaultTarget" description="this is the default target">
  <script language="javascript">
    self.log("do nothing");
  </script>

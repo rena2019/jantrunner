@@ -1,10 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <config>
-<timer interval="2" execute="js.timer" file="javascript.xml" />
-<!-- buttons>
+<!-- todo 
+logger, listener and other ant execution options 
+-->
+<execution logger="org.apache.tools.ant.DefaultLogger" />
+<timer interval="20" execute="js.timer" file="javascript.xml" />
+<buttons>
   <button name="#1" execute="js.simpletest1" file="javascript.xml" description="executes js.simpletest1"/>
   <button name="#2" execute="js.simpletest2" file="javascript.xml" description="executes js.simpletest1"/>
-</buttons -->
+  <button name="fail" execute="js.fails.after.5seconds" file="javascript.xml" description="executes js.fails.after.5seconds"/>
+</buttons>
 <tabs>
  <tab name="JS" type="TaskList" file="javascript.xml" />
  <tab name="TextField" type="" source="AntTaskField.bsh" file="taskfield.xml" />
