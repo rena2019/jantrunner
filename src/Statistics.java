@@ -1,9 +1,11 @@
 import java.io.File;
 import java.sql.*;
 
-
-//taken from http://www.zentus.com/sqlitejdbc/
-
+/**
+ * Class to access SQLite database
+ * @author ReNa2019 http://code.google.com/p/jantrunner/
+ *
+ */
 public class Statistics {
 	private static final String TABLE_DURATION = "execution";
 	private String dbFilename;
@@ -14,9 +16,20 @@ public class Statistics {
 			createTable();
 	}
 	
-	/*
+	/**
+	 * main method to use the class from command line
+	 * @param args db file name
+	 * @throws Exception
+	 */
 	public static void main(String[] args) throws Exception {
-		Statistics stat = new Statistics("antexecution.db");
+		if (args.length == 0) {
+			System.out.println("please enter db file name");
+			System.exit(1);
+			return;
+		}
+		Statistics stat = new Statistics(args[0]);
+		stat.dumpTable();
+		/*
 		// stat.insertSomeValues();
 		Format formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 	    //Date date = (Date) formatter.parseObject("2011-09-15 19:01:02");
@@ -28,9 +41,16 @@ public class Statistics {
 				+ stat.getLastDuration("javascript.xml", "default"));
 		System.out.println("avg="
 				+ stat.getAvarage("javascript.xml", "default"));
+		*/
 	}
-	*/
 
+	/**
+	 * Get last execution duration for the given ant file/target
+	 * @param antFilename
+	 * @param target
+	 * @return
+	 * @throws Exception
+	 */
 	public double getLastDuration(String antFilename, String target)
 			throws Exception {
 		double duration = 0;
@@ -52,6 +72,27 @@ public class Statistics {
 		rs.close();
 		conn.close();
 		return duration;
+	}
+	
+	/**
+	 * Dump the SQL table to the console.
+	 * @throws Exception
+	 */
+	public void dumpTable() throws Exception {
+		Class.forName("org.sqlite.JDBC");
+		String SEPARATOR = ";";
+		Connection conn = DriverManager.getConnection("jdbc:sqlite:"
+				+ this.dbFilename);
+		Statement stat = conn.createStatement();
+
+		ResultSet rs = stat.executeQuery("select * from " + TABLE_DURATION +
+				       " ORDER by date DESC;");
+		System.out.println("date;file;target;duration");
+		while (rs.next()) {
+			System.out.println(rs.getString("date") + SEPARATOR + rs.getString("file")
+					+ SEPARATOR + rs.getString("target") + SEPARATOR
+					+ rs.getDouble("duration"));
+		}
 	}
 
 	public void createTable() throws Exception {
@@ -84,7 +125,14 @@ public class Statistics {
 		conn.close();
 	}
 
-	private double getAvarage(String antFilename, String target)
+	/**
+	 * Get the average execution time for the given ant file/task
+	 * @param antFilename
+	 * @param target
+	 * @return duration in seconds
+	 * @throws Exception
+	 */
+	private double getAverage(String antFilename, String target)
 			throws Exception {
 		int duration = 0;
 		// sqlite Aggregate Functions
