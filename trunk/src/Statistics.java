@@ -86,7 +86,7 @@ public class Statistics {
 		Statement stat = conn.createStatement();
 
 		ResultSet rs = stat.executeQuery("select * from " + TABLE_DURATION +
-				       " ORDER by date DESC;");
+				       " ORDER by date;");
 		System.out.println("date;file;target;duration");
 		while (rs.next()) {
 			System.out.println(rs.getString("date") + SEPARATOR + rs.getString("file")
