@@ -5,3 +5,5 @@
  * Add screenshot in Wiki
  * select default target (in tasklist) on startup
  * color button (red/green) on task finished event
+ * use thread for target execution (button)
+ * use thread for target execution (batch file)
