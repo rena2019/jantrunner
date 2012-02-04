@@ -28,7 +28,11 @@ public class Statistics {
 			return;
 		}
 		Statistics stat = new Statistics(args[0]);
-		stat.dumpTable();
+		String sqlQuery = "";
+		if (args.length >= 2) {
+			sqlQuery = args[1];
+		}
+		stat.dumpTable(sqlQuery);
 		/*
 		// stat.insertSomeValues();
 		Format formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -78,15 +82,19 @@ public class Statistics {
 	 * Dump the SQL table to the console.
 	 * @throws Exception
 	 */
-	public void dumpTable() throws Exception {
+	public void dumpTable(String query) throws Exception {
 		Class.forName("org.sqlite.JDBC");
 		String SEPARATOR = ";";
+		String sqlQuery = "select * from " + TABLE_DURATION + " ORDER by date;";
+		//use the given query if existing
+		if (!query.equals("")) {
+			sqlQuery = query;
+		}
 		Connection conn = DriverManager.getConnection("jdbc:sqlite:"
 				+ this.dbFilename);
 		Statement stat = conn.createStatement();
 
-		ResultSet rs = stat.executeQuery("select * from " + TABLE_DURATION +
-				       " ORDER by date;");
+		ResultSet rs = stat.executeQuery(sqlQuery);
 		System.out.println("date;file;target;duration");
 		while (rs.next()) {
 			System.out.println(rs.getString("date") + SEPARATOR + rs.getString("file")
