@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <config>
-<!-- todo 
-logger, listener and other ant execution options 
--->
-<execution logger="org.apache.tools.ant.DefaultLogger" />
+<options logger="org.apache.tools.ant.listener.ProfileLogger" />
 <timer interval="20" execute="js.timer" file="javascript.xml" />
 <buttons>
   <button name="#1" execute="js.simpletest1" file="javascript.xml" description="executes js.simpletest1"/>

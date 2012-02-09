@@ -72,7 +72,7 @@ public class AntRunner /* extends JFrame */ {
 	private static final String TASK_LIST = "TaskList";
 	private static final String LOG_FILE = "log.txt";
 	private static final String DEFAULT_CONFIG_XML = "config.xml";
-	private static final String VERSION = "0.2";
+	private static final String VERSION = "0.3";
 
 	// TODO
 	String ANT_FILES_PATH = null;
@@ -85,6 +85,8 @@ public class AntRunner /* extends JFrame */ {
 	// global variables
 	Project antproject;
 	Project project;
+	org.apache.tools.ant.BuildLogger logger = null;
+	
 	String last_descr_build_file = "";
 	JFrame frame;
 
@@ -364,12 +366,17 @@ public class AntRunner /* extends JFrame */ {
 		project = new Project();
 		project.setUserProperty("ant.file", buildFile.getAbsolutePath());
 		// TODO remove AntLogger logger = new AntLogger();
-		DefaultLogger consoleLogger = new DefaultLogger();
-		consoleLogger.setErrorPrintStream(System.err);
-		consoleLogger.setOutputPrintStream(System.out);
-		consoleLogger.setMessageOutputLevel(message_output_level);
+		if (logger == null) {
+			logger = new DefaultLogger();
+		}
+		if (logger instanceof DefaultLogger) {
+			logger.setErrorPrintStream(System.err);
+			logger.setOutputPrintStream(System.out);
+			logger.setMessageOutputLevel(message_output_level);
+		}
 		// TODO remove p.setProjectReference(logger);
-		project.addBuildListener(consoleLogger);
+		// Listeners & Loggers http://antinstaller.sourceforge.net/manual/manual/listeners.html#DefaultLogger
+		project.addBuildListener(logger);
 		// TODO remove p.addBuildListener(logger);
 		if (listener != null)
 			project.addBuildListener(listener);
@@ -705,6 +712,18 @@ public class AntRunner /* extends JFrame */ {
 				} else {
 					// no buttons -> hide panel
 					panelCmdButtons.setVisible(false);
+				}
+				// options ----------------------
+				nodes = doc.getElementsByTagName("options");
+				if (nodes.getLength() > 0) {
+					//timer
+					Node node = nodes.item(0);
+					if (node instanceof Element) {
+						// a child element to process
+						Element child = (Element) node;
+						Class c = Class.forName(child.getAttribute("logger"));
+						logger = (BuildLogger)c.newInstance();
+					}
 				}
 				// tabs -------------------------
 				nodes = doc.getElementsByTagName("tabs").item(0)
