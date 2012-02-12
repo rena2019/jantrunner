@@ -8,6 +8,7 @@ import java.sql.*;
  */
 public class Statistics {
 	private static final String TABLE_DURATION = "execution";
+	private static final String SEPARATOR =";";
 	private String dbFilename;
 
 	public Statistics(String dbFilename) throws Exception {
@@ -23,7 +24,12 @@ public class Statistics {
 	 */
 	public static void main(String[] args) throws Exception {
 		if (args.length == 0) {
-			System.out.println("please enter db file name");
+			System.out.println("Usage: filename [sql]\r\nsql e.g. select * FROM execution;");
+			System.exit(1);
+			return;
+		}
+		if (!new File(args[0]).exists()) {
+			System.err.println(String.format("File '%s' not found", args[0]));
 			System.exit(1);
 			return;
 		}
@@ -95,11 +101,24 @@ public class Statistics {
 		Statement stat = conn.createStatement();
 
 		ResultSet rs = stat.executeQuery(sqlQuery);
-		System.out.println("date;file;target;duration");
+		ResultSetMetaData rsMetaData = rs.getMetaData();
+		String columns="";
+		int columnCount = rsMetaData.getColumnCount();
+		for(int c=1; c <= columnCount; c++) {
+			columns += rsMetaData.getColumnName(c);
+			if (c < columnCount)
+				columns += SEPARATOR;
+		}
+		System.out.println(columns);
+			
 		while (rs.next()) {
-			System.out.println(rs.getString("date") + SEPARATOR + rs.getString("file")
-					+ SEPARATOR + rs.getString("target") + SEPARATOR
-					+ rs.getDouble("duration"));
+			columns="";
+			for(int c=1; c <= columnCount; c++) {
+				columns += rs.getString(c);
+				if (c < rsMetaData.getColumnCount())
+					columns += SEPARATOR;
+			}
+			System.out.println(columns);
 		}
 	}
 
@@ -140,7 +159,7 @@ public class Statistics {
 	 * @return duration in seconds
 	 * @throws Exception
 	 */
-	private double getAverage(String antFilename, String target)
+	public double getAverage(String antFilename, String target)
 			throws Exception {
 		int duration = 0;
 		// sqlite Aggregate Functions
@@ -150,12 +169,11 @@ public class Statistics {
 				+ this.dbFilename);
 		Statement stat = conn.createStatement();
 
-		String select = " where (target='" + target + "' AND file = '"
+		String select = " WHERE (target = '" + target + "' AND file = '"
 				+ antFilename + "')";
-		select = "";
 		String func = "avg";
-		ResultSet rs = stat.executeQuery("select " + func + "(duration) as '"
-				+ func + "' from " + TABLE_DURATION + " " + select + ";");
+		String sql = "select " + func + "(duration) as '" + func + "' from " + TABLE_DURATION + " " + select + ";";
+		ResultSet rs = stat.executeQuery(sql);
 		double ret = rs.getDouble(1);
 		//System.out.println(func + " = " + ret);
 		rs.close();

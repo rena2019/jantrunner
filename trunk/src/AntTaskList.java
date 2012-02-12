@@ -58,6 +58,7 @@ class AntTaskList extends JList implements AntRunnerComponent, MouseListener /*,
 	private int[] progress;
 	private boolean[] passed;
 	private int running_target_index=0;
+	private String status = "";
 
 	// constructor
 	AntTaskList(String filename) {
@@ -78,6 +79,7 @@ class AntTaskList extends JList implements AntRunnerComponent, MouseListener /*,
 			private String value;
 			private JList list;
 			private int index;
+			private String info;
 
 			public Component getListCellRendererComponent(JList list,
 					Object value, int index, boolean isSelected,
@@ -94,7 +96,7 @@ class AntTaskList extends JList implements AntRunnerComponent, MouseListener /*,
 
 			// @Override
 			protected void paintComponent(Graphics g) {
-				// FontMetrics fm = g.getFontMetrics();
+				FontMetrics fm = g.getFontMetrics();
 				//TODO
 				if (progress[this.index]>0) {
 					// red/green
@@ -116,6 +118,9 @@ class AntTaskList extends JList implements AntRunnerComponent, MouseListener /*,
 				g.setColor(Color.black);
 				g.drawString(String.valueOf(this.value), 1,
 						this.getHeight() - 5);
+				if (this.index == running_target_index && progress[this.index] < 100 &&
+						this.getWidth()-fm.stringWidth(status) > fm.stringWidth(String.valueOf(this.value)))
+				   g.drawString(status, this.getWidth()-fm.stringWidth(status), this.getHeight() - 5);
 			}
 
 		});
@@ -191,6 +196,9 @@ class AntTaskList extends JList implements AntRunnerComponent, MouseListener /*,
 			//set default selected = default target
 			String defaultTarget = project.getDefaultTarget();
 			this.setSelectedIndex(((DefaultListModel) this.getModel()).indexOf(defaultTarget));
+			if (this.getSelectedIndex() == -1) {
+				this.setSelectedIndex(0);
+			}
 		} catch (Exception ex) {
 			System.err.println(ex.toString());
 			return false;
@@ -336,6 +344,7 @@ class AntTaskList extends JList implements AntRunnerComponent, MouseListener /*,
 		if (antrunner != null) {
 			//
 		}
+		this.status = info;
 		switch (state)
 		{
 			case STARTED: if (event.getTarget() != null) {
