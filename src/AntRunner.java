@@ -73,10 +73,12 @@ public class AntRunner /* extends JFrame */ {
 	private static final String LOG_FILE = "log.txt";
 	private static final String DEFAULT_CONFIG_XML = "config.xml";
 	private static final String VERSION = "0.3";
+	private static final String COMMENT_CREATED_BY = "<!--\r\ncreated with jantrunner\r\n-->\r\n";
 
 	// TODO
 	String ANT_FILES_PATH = null;
 	String ANTRUNNER_BATCH_FILE = "antrunner.xml";
+	String ANTRUNNER_BATCH_TASK = "batch";
 	String STATISTICS_DB = "antrunner.db";
 
 	// TODO config?
@@ -86,6 +88,7 @@ public class AntRunner /* extends JFrame */ {
 	Project antproject;
 	Project project;
 	org.apache.tools.ant.BuildLogger logger = null;
+	String loggerClass;
 	
 	String last_descr_build_file = "";
 	JFrame frame;
@@ -102,7 +105,8 @@ public class AntRunner /* extends JFrame */ {
 	JTabbedPane tabbedPane;
 	Timer timer = null;
 	JTextField txtTimerField;
-	JPanel toolsPanel;
+	JTextField loggerTextField;
+	JPanel configPanel;
 	AntRunnerTab moreTab;
 	
 	JSplitPane splitPane;
@@ -156,14 +160,18 @@ public class AntRunner /* extends JFrame */ {
 			String line;
 			Process p = Runtime.getRuntime().exec(path);
 			if (wait) {
-				// TODO Error Stream ?
 				BufferedReader input = new BufferedReader(
 						new InputStreamReader(p.getInputStream()));
-				while ((line = input.readLine()) != null) {
+				BufferedReader err = new BufferedReader(
+						new InputStreamReader(p.getErrorStream()));
+				while ((line = input.readLine()) != null ) {
 					if (out != "")
 						out += "\r\n";
 					out += line;
 					System.out.println(line);
+					line = err.readLine();
+					if (line != null)
+						System.err.println(line);
 				}
 				input.close();
 			}
@@ -201,7 +209,7 @@ public class AntRunner /* extends JFrame */ {
 				exec(s);
 			}
 			catch(Exception ex) {
-				ex.printStackTrace();;
+				ex.printStackTrace();
 			}
 		}
 	}
@@ -366,9 +374,6 @@ public class AntRunner /* extends JFrame */ {
 		project = new Project();
 		project.setUserProperty("ant.file", buildFile.getAbsolutePath());
 		// TODO remove AntLogger logger = new AntLogger();
-		if (logger == null) {
-			logger = new DefaultLogger();
-		}
 		if (logger instanceof DefaultLogger) {
 			logger.setErrorPrintStream(System.err);
 			logger.setOutputPrintStream(System.out);
@@ -460,6 +465,22 @@ public class AntRunner /* extends JFrame */ {
 			}
 		}
 	};
+	
+	private void writeBatchFile() {
+		String targets = "";
+		for (int i = 0; i < ((DefaultListModel) lstBatch.getModel())
+				.size(); i++) {
+			String s = ((DefaultListModel) lstBatch.getModel()).get(i)
+					.toString();
+			String file = s.substring(0, s.indexOf(";"));
+			String target = s.substring(s.indexOf(";") + 1);
+			if (i > 0)
+				targets += "\r\n";
+			targets += "  <ant antfile=\"" + file + "\" target=\"" + target
+					+ "\" />";
+		}
+		writeAntTaskfile(ANTRUNNER_BATCH_FILE, targets, ANTRUNNER_BATCH_TASK, "");
+	}
 
 	/**
 	 * button handler for ant batch list
@@ -472,20 +493,9 @@ public class AntRunner /* extends JFrame */ {
 				//
 				// print("run batch");
 				// <ant antfile="subproject/subbuild.xml" target="compile"/>
-				String targets = "";
-				String targetname = "batch";
-				for (int i = 0; i < ((DefaultListModel) lstBatch.getModel())
-						.size(); i++) {
-					String s = ((DefaultListModel) lstBatch.getModel()).get(i)
-							.toString();
-					String file = s.substring(0, s.indexOf(";"));
-					String target = s.substring(s.indexOf(";") + 1);
-					targets += "  <ant antfile=\"" + file + "\" target=\"" + target
-							+ "\" />" + "\r\n";
-				}
-				writeAntTaskfile(ANTRUNNER_BATCH_FILE, targets, targetname, "");
+				writeBatchFile();
 				setButtonBgColor((JButton) event.getSource(),
-						executeAntTarget(ANTRUNNER_BATCH_FILE, targetname));
+						executeAntTarget(ANTRUNNER_BATCH_FILE, ANTRUNNER_BATCH_TASK));
 				
 			} else if (event.getActionCommand() == "Up") {
 				idx = lstBatch.getSelectedIndex();
@@ -561,11 +571,8 @@ public class AntRunner /* extends JFrame */ {
 				 * s.substring(s.indexOf(";") + 1); exec(EDITOR_EXE + " " + new
 				 * File(ANT_FILES_PATH, file).getAbsolutePath(), false); } else
 				 */if (lst == lstBatch) {
-					// list on the right side
-					/*
-					 * exec(EDITOR_EXE + " " + new
-					 * File(ANTRUNNER_BATCH_FILE).getAbsolutePath(), false);
-					 */
+					// list on the right side (batch list)
+					writeBatchFile();
 					editFile(ANTRUNNER_BATCH_FILE);
 				}
 			}
@@ -650,7 +657,7 @@ public class AntRunner /* extends JFrame */ {
 	void writeAntTaskfile(String filename, String task, String taskname,
 			String additional) {
 		String antxml = "<project name=\"Run" + taskname + "\" default=\""
-				+ taskname + "\" >\r\n" + additional + "<target name=\""
+				+ taskname + "\" >\r\n" + COMMENT_CREATED_BY + additional + "<target name=\""
 				+ taskname + "\">\r\n" + task + "\r\n</target>\r\n</project>";
 		writeFile(filename, antxml);
 	}
@@ -667,7 +674,7 @@ public class AntRunner /* extends JFrame */ {
 	 * Hide batch list, "+" tab and tools tab.
 	 */
 	private void showSimpleGui() {
-		toolsPanel.setVisible(false);
+		configPanel.setVisible(false);
 	}
 
 	// read in the config file and create the specified GUI
@@ -721,8 +728,7 @@ public class AntRunner /* extends JFrame */ {
 					if (node instanceof Element) {
 						// a child element to process
 						Element child = (Element) node;
-						Class c = Class.forName(child.getAttribute("logger"));
-						logger = (BuildLogger)c.newInstance();
+						loggerClass = child.getAttribute("logger");
 					}
 				}
 				// tabs -------------------------
@@ -764,9 +770,20 @@ public class AntRunner /* extends JFrame */ {
 				}
 
 			} else {
-				System.err.print("File not found!");
+				System.err.print("File " + xmlFile + " not found!");
 			}
 		} catch (Exception e) {
+			System.err.print(e.toString());
+			System.exit(1);
+		}
+		try {
+			if (loggerClass == null)
+				loggerClass = "org.apache.tools.ant.DefaultLogger";
+			Class c = Class.forName(loggerClass);
+			logger = (BuildLogger)c.newInstance();
+			loggerTextField.setText(logger.getClass().getCanonicalName());
+		}
+		catch (Exception e) {
 			System.err.print(e.toString());
 			System.exit(1);
 		}
@@ -850,8 +867,8 @@ public class AntRunner /* extends JFrame */ {
 		moreTab.setTransferHandler(new AntRunnerFileTransferHandler(moreTab
 				.getTaskList()));
 		
-		//add tools tab
-		tabbedPane.addTab("Tools", toolsPanel);
+		//add config tab
+		tabbedPane.addTab("Config", configPanel);
 
 	}
 
@@ -907,9 +924,9 @@ public class AntRunner /* extends JFrame */ {
 		
 		//prepare adv gui
 		//tools tab		
-		toolsPanel = new JPanel(new BorderLayout());
+		configPanel = new JPanel(new BorderLayout());
 		JPanel toolsChildPanel = new JPanel(new FlowLayout());
-		toolsPanel.add(toolsChildPanel, BorderLayout.CENTER);
+		configPanel.add(toolsChildPanel, BorderLayout.CENTER);
 
 		chkPoll = new JCheckBox("Timer");
 		chkPoll.setSelected(true);
@@ -920,6 +937,11 @@ public class AntRunner /* extends JFrame */ {
 		txtTimerField = new JTextField();
 		txtTimerField.setEditable(false);
 		toolsChildPanel.add(txtTimerField);
+		
+		toolsChildPanel.add(new JLabel("Logger: "));
+		loggerTextField = new JTextField();
+		loggerTextField.setEditable(false);
+		toolsChildPanel.add(loggerTextField);
 		
 
 		
