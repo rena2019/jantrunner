@@ -131,7 +131,8 @@ public class ExecuteThread extends Thread implements BuildListener {
 	
 	private void updateProgress(String filename, String target, int percent, String info) {
 		this.percent = percent;
-		comp.progress(percent, AntRunnerComponent.ProgressState.RUNNING,
+		if (comp instanceof AntTaskList)
+			comp.progress(percent, AntRunnerComponent.ProgressState.RUNNING,
 				info, null);
 		//System.out.print("updateProgress: " + filename + ", " + target);
 	}
@@ -140,14 +141,16 @@ public class ExecuteThread extends Thread implements BuildListener {
 	public void buildFinished(BuildEvent arg0) {
 		// TODO Auto-generated method stub
 		percent = 100;
-		comp.progress(percent, AntRunnerComponent.ProgressState.FINISHED, "", arg0);
+		if (comp instanceof AntTaskList)
+			comp.progress(percent, AntRunnerComponent.ProgressState.FINISHED, "", arg0);
 	}
 
 	//@Override
 	public void buildStarted(BuildEvent arg0) {
 		// TODO Auto-generated method stub
 		percent = 0;
-		comp.progress(percent, AntRunnerComponent.ProgressState.STARTED, "", arg0);
+		if (comp instanceof AntTaskList)
+			comp.progress(percent, AntRunnerComponent.ProgressState.STARTED, "", arg0);
 	}
 
 	//@Override
@@ -163,14 +166,16 @@ public class ExecuteThread extends Thread implements BuildListener {
 	public void targetFinished(BuildEvent arg0) {
 		// TODO Auto-generated method stub
 		percent = 100;
-		comp.progress(percent, AntRunnerComponent.ProgressState.FINISHED, "", arg0);
+		if (comp instanceof AntTaskList)
+			comp.progress(percent, AntRunnerComponent.ProgressState.FINISHED, "", arg0);
 	}
 
 	//@Override
 	public void targetStarted(BuildEvent arg0) {
 		// TODO Auto-generated method stub
 		percent = 0;
-		comp.progress(percent, AntRunnerComponent.ProgressState.STARTED, "", arg0);
+		if (comp instanceof AntTaskList)
+			comp.progress(percent, AntRunnerComponent.ProgressState.STARTED, "", arg0);
 	}
 
 	//@Override
