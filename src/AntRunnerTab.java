@@ -53,7 +53,7 @@ public class AntRunnerTab extends JPanel {
 					String file = ((AntRunnerComponent) comp).getFilename();
 					DefaultListModel model = ((DefaultListModel) antrunner
 							.getBatchList().getModel());
-					for (String taskname : ((AntTaskList) comp).getTaskNames()) {
+					for (String taskname : ((AntRunnerComponent) comp).getTaskNames()) {
 							if (!(new File(file)).exists())
 								file = new File(file).getAbsolutePath(); // TODO
 																			// current
