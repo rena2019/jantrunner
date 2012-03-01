@@ -398,7 +398,7 @@ public class AntRunner /* extends JFrame */ {
 			SimpleDateFormat formatNew = new SimpleDateFormat("s.SSS");
 			Format formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 			//calculate duration
-			double duration = Double.parseDouble(formatNew.format(dateEnd.getTime() - dateStart.getTime()));
+			double duration = (dateEnd.getTime() - dateStart.getTime()) / 1000;
 			//add to db
 			statistics.addValues(formatter.format(dateEnd), filename, target, duration );
 		} catch (Exception e) {
