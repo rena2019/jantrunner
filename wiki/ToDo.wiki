@@ -11,3 +11,5 @@
  * drag & drop
  * warning dialog if tasks running and user pressed close button
  * task kill ?
+ * tab type: Treeview
+ * use other color (instead of green) while executing target
