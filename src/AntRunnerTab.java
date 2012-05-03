@@ -84,7 +84,13 @@ public class AntRunnerTab extends JPanel {
 			((AntRunnerComponent) comp).setRunner(runner);
 			((AntRunnerComponent) comp).setFilename(file);
 			this.add(new JScrollPane(comp), BorderLayout.CENTER);
-		} else {
+		} else if (type.equals("TreeList")) {
+			comp = new AntTreeList(file);
+			((AntRunnerComponent) comp).setRunner(runner);
+			((AntRunnerComponent) comp).setFilename(file);
+			this.add(new JScrollPane(comp), BorderLayout.CENTER);
+		}
+		 else {
 			try {
 				if (source.equals("")) {
 					comp = (JComponent) Class.forName(type).newInstance();
