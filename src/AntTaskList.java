@@ -205,30 +205,6 @@ class AntTaskList extends JList implements AntRunnerComponent, MouseListener /*,
 		}
 		return true;
 	}// addAntTasksToList
-
-	String getAntDescription(String target) {
-		String s = "";
-		try {
-			File buildFile = new File(this.filename);
-
-			if (ant_build_file == "" || ant_build_file != this.filename) {
-				ProjectHelper helper = ProjectHelper.getProjectHelper();
-				ant_project = new Project();
-				ant_project.init();
-				ant_project.addReference("ant.projectHelper", helper);
-				ant_build_file = this.filename;
-				helper.parse(ant_project, buildFile);
-			}
-
-			Hashtable hash = ant_project.getTargets();
-			s = ((Target) hash.get(target)).getDescription();
-			// System.out.println("target=" + target + "/" + s);
-		} catch (Exception e) {
-			System.out.println(e.toString());
-		}
-
-		return s;
-	}// getAntDescription
 	
 	private void selectDefaultTask() {
 		try {
@@ -269,9 +245,9 @@ class AntTaskList extends JList implements AntRunnerComponent, MouseListener /*,
 			AntTaskList list = (AntTaskList) e.getSource();
 			int idx = list.locationToIndex(e.getPoint());
 			if (idx >= 0 && idx < ((DefaultListModel) list.getModel()).size()) {
-				String task = ((DefaultListModel) list.getModel()).get(idx)
+				String target = ((DefaultListModel) list.getModel()).get(idx)
 						.toString();
-				String description = list.getAntDescription(task);
+				String description = antrunner.getAntDescription(filename, target);
 				if (description != null)
 					list.setToolTipText(description);
 				else
@@ -284,7 +260,6 @@ class AntTaskList extends JList implements AntRunnerComponent, MouseListener /*,
 	// @Override
 	public void setRunner(AntRunner runner) {
 		antrunner = runner;
-
 	}
 
 	// @Override
