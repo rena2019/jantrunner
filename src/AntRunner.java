@@ -425,7 +425,7 @@ public class AntRunner /* extends JFrame */ {
 	 * @param target
 	 * @return
 	 */
-	String getAntDescription(String file, String target) {
+	String getAntDescription(String file, String targetname) {
 		String s = "";
 		try {
 			File buildFile = new File(ANT_FILES_PATH, file);
@@ -441,7 +441,10 @@ public class AntRunner /* extends JFrame */ {
 
 			// print("target=" + (Target)p.getTaskDefinitions().get(target));
 			Hashtable hash = antproject.getTargets();
-			s = ((Target) hash.get(target)).getDescription();
+			Target target= (Target) hash.get(targetname);
+			if (target != null) {
+				s = target.getDescription();
+			}
 		} catch (Exception e) {
 			System.err.println(e.toString());
 		}
