@@ -1,13 +1,11 @@
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionAdapter;
 import java.io.File;
-import java.io.IOException;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Vector;
 
-import javax.swing.DefaultListModel;
-import javax.swing.JPanel;
 import javax.swing.JTree;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
@@ -18,44 +16,63 @@ import org.apache.tools.ant.BuildEvent;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.ProjectHelper;
 
-/*
- set default
- TreePath path = this.pathFromFile(home);
- tree.setSelectionPath(path);
- tree.scrollPathToVisible(treePath);
- 
- */
-
-public class AntTreeList extends JTree implements AntRunnerComponent, MouseListener {
+public class AntTreeList extends JTree implements AntRunnerComponent,
+		MouseListener {
 
 	private String filename = "";
 	private AntRunner antrunner;
-	private String running_target = "";
 	private int[] progress;
 	private boolean[] passed;
-	private int running_target_index=0;
 	private String status = "";
 	String ant_build_file = "";
 	Project ant_project;
-	
-	// constructor
+	String path_separator = ".";
+
+	/**
+	 * Mouse motion handler: display ant target description.
+	 */
+	private MouseMotionAdapter mouseMotionHandler = new MouseMotionAdapter() {
+		public void mouseMoved(MouseEvent e) {
+			AntTreeList tree = (AntTreeList) e.getSource();
+			TreePath path = tree.getClosestPathForLocation(e.getPoint().x,
+					e.getPoint().y);
+			DefaultMutableTreeNode node = (DefaultMutableTreeNode) path
+					.getLastPathComponent();
+			if (node != null) {
+				Object object = node.getUserObject();
+				if (object != null) {
+					String targetName = ((NodeInfo) object).getTargetName();
+					String description = antrunner.getAntDescription(filename,
+							targetName);
+					if (description != null)
+						tree.setToolTipText(description);
+					else
+						tree.setToolTipText("");
+				}
+			}
+		}
+	};
+
+	/** Constructor of AntTreeList
+	 * 
+	 * @param filename
+	 */
 	AntTreeList(String filename) {
 		super();
 		this.filename = filename;
 		this.addMouseListener(this);
-		
-		//Create the nodes.
-        DefaultMutableTreeNode root = new DefaultMutableTreeNode("Root");
-        File buildfile = new File(filename);
-        Project project = new Project();
+		this.addMouseMotionListener(mouseMotionHandler);
+
+		DefaultMutableTreeNode root = new DefaultMutableTreeNode(filename);
+		File buildfile = new File(filename);
+		Project project = new Project();
 		project.init();
 		ProjectHelper helper = ProjectHelper.getProjectHelper();
 		project.addReference("ant.projectHelper", helper);
 		helper.parse(project, buildfile);
+		String defaultTarget = project.getDefaultTarget();
+		TreePath treePath = null;
 
-		// Hashtable hash = project.getTargets();
-		// print(buildfile.name + " size: " + hash.size());
-		// Enumeration en = hash.keys();
 		Vector v = new Vector();
 		Enumeration en = project.getTargets().elements();
 		while (en.hasMoreElements()) {
@@ -65,24 +82,115 @@ public class AntTreeList extends JTree implements AntRunnerComponent, MouseListe
 		}
 		Collections.sort(v);
 		en = v.elements();
-		//TreeNode root = (TreeNode)((DefaultTreeModel) this.getModel()).getRoot();
+		// add all targets to tree
 		while (en.hasMoreElements()) {
 			String name = en.nextElement().toString();
+			TreePath path = new TreePath(root);
 			if (name != "") {
-				String s = buildfile.getName();
-				if (false)
-					try {
-						s = buildfile.getCanonicalPath();
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+				String[] parts = name.split(path_separator.replace(".", "\\."));
+				DefaultMutableTreeNode node = root;
+				String targetName = "";
+				for (int idx = 0; idx < parts.length; idx++) {
+					boolean nodeNotFound = true;
+					targetName += parts[idx];
+					if (node.getChildCount() > 0) {
+						for (Enumeration e = node.children(); e
+								.hasMoreElements();) {
+							TreeNode n = (TreeNode) e.nextElement();
+							// tree node found?
+							if (n.toString().equals(parts[idx])) {
+								// node already existing -> use it for next loop
+								node = (DefaultMutableTreeNode) n;
+								path = path.pathByAddingChild(node);
+								nodeNotFound = false;
+								break;
+							}
+						}
 					}
-				root.add(new DefaultMutableTreeNode(name));
+					if (nodeNotFound) {
+						DefaultMutableTreeNode newNode = new DefaultMutableTreeNode(
+								new NodeInfo(targetName));
+						node.add(newNode);
+						if (defaultTarget.equals(targetName)) {
+							treePath = path.pathByAddingChild(newNode);
+						}
+						node = newNode;
+					}
+					targetName += path_separator;
+				}// for
 			}
 		}
-        this.setModel(new DefaultTreeModel(root));
+		this.setModel(new DefaultTreeModel(root));
+		expandAll(this);
+		// set default selected = default target
+		if (treePath != null) {
+			setSelectionPath(treePath);
+			scrollPathToVisible(treePath);
+			setLeadSelectionPath(treePath);
+		}
+		setRootVisible(false);
 	}
 	
+	private void addNodesRecursive(TreeNode treeNode) {
+		
+	}
+	
+
+	/**
+	 * Expand all nodes.
+	 * 
+	 * @param tree
+	 */
+	private void expandAll(JTree tree) {
+		int row = 0;
+		while (row < tree.getRowCount()) {
+			tree.expandRow(row);
+			row++;
+		}
+	}
+
+	/**
+	 * Helper function.
+	 * @param tree
+	 * @param names
+	 * @return
+	 */
+	private static TreePath findByName(JTree tree, String[] names) {
+		TreeNode root = (TreeNode) tree.getModel().getRoot();
+		return find(tree, new TreePath(root), names, 0);
+	}
+
+	/**
+	 * Helper function.
+	 * @param tree
+	 * @param parent
+	 * @param nodes
+	 * @param depth
+	 * @return
+	 */
+	private static TreePath find(JTree tree, TreePath parent, Object[] nodes,
+			int depth) {
+		TreeNode node = (TreeNode) parent.getLastPathComponent();
+		Object o = node;
+
+		if (o.equals(nodes[depth])) {
+			if (depth == nodes.length - 1) {
+				return parent;
+			}
+			if (node.getChildCount() >= 0) {
+				for (Enumeration e = node.children(); e.hasMoreElements();) {
+					TreeNode n = (TreeNode) e.nextElement();
+					TreePath path = parent.pathByAddingChild(n);
+					TreePath result = find(tree, path, nodes, depth + 1);
+					if (result != null) {
+						return result;
+					}
+				}
+			}
+		}
+		return null;
+	}
+
 	@Override
 	public void mouseClicked(MouseEvent e) {
 		// TODO Auto-generated method stub
@@ -118,24 +226,28 @@ public class AntTreeList extends JTree implements AntRunnerComponent, MouseListe
 		antrunner = runner;
 	}
 
-	// returns list of ant tasks
+	/**
+	 * Returns list of selected ant targets.
+	 */
 	@Override
 	public String[] getTaskNames() {
-		TreeNode root = (TreeNode)((DefaultTreeModel) this.getModel()).getRoot();
+		TreeNode root = (TreeNode) ((DefaultTreeModel) this.getModel())
+				.getRoot();
 		TreePath[] paths = this.getSelectionPaths();
 		String[] targets = new String[paths.length];
-		for(int i=0; i<targets.length; i++) {
-			targets[i] = paths[i].getLastPathComponent().toString();
+		int arrayLen = 0;
+		for (int i = 0; i < targets.length; i++) {
+			DefaultMutableTreeNode node = (DefaultMutableTreeNode) paths[i]
+					.getLastPathComponent();
+			if (node.isLeaf()) {
+				NodeInfo nodeInfo = (NodeInfo) node.getUserObject();
+				targets[arrayLen] = nodeInfo.getTargetName();
+				arrayLen++;
+			}
 		}
-		/* TODO
-		int[] idx = this.getSelectedIndices();
-		String[] tasks = new String[idx.length];
-		DefaultListModel model = ((DefaultListModel) this.getModel());
-		for (int i = 0; i < idx.length; i++) {
-			tasks[i] = model.get(idx[i]).toString();
-		}
-		*/
-		return targets;
+		String[] arr = new String[arrayLen];
+		System.arraycopy(targets, 0, arr, 0, arrayLen);
+		return arr;
 	}
 
 	@Override
@@ -159,6 +271,25 @@ public class AntTreeList extends JTree implements AntRunnerComponent, MouseListe
 	public void clearBuildStatus() {
 		// TODO Auto-generated method stub
 
+	}
+
+	private class NodeInfo {
+		public String targetName = "";
+
+		public NodeInfo(String targetName) {
+			this.targetName = targetName;
+		}
+
+		public String toString() {
+			String[] s = targetName.split(path_separator.replace(".", "\\."));
+			if (s.length > 0)
+				return s[s.length - 1];
+			return targetName;
+		}
+
+		public String getTargetName() {
+			return targetName;
+		}
 	}
 
 }
