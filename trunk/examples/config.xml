@@ -11,5 +11,6 @@
  <tab name="JS" type="TaskList" file="javascript.xml" />
  <tab name="TextField" type="" source="AntTaskField.bsh" file="taskfield.xml" />
  <tab file="javascript.xml" />
+ <tab name="Tree" type="TreeList" file="javascript.xml" />
 </tabs>
 </config>

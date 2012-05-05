@@ -57,6 +57,7 @@ import org.apache.tools.ant.*;
  2011-12-22 added: edit with notepad
  2011-12-27 tasklist: double click starts task
  2012-02-04 some fixes, color button, default selected target, dumpTable
+ 2012-05-04 v0.4: AntTreeList
 
  TODO
 
@@ -72,7 +73,7 @@ public class AntRunner /* extends JFrame */ {
 	private static final String TASK_LIST = "TaskList";
 	private static final String LOG_FILE = "log.txt";
 	private static final String DEFAULT_CONFIG_XML = "config.xml";
-	private static final String VERSION = "0.3";
+	private static final String VERSION = "0.4";
 	private static final String COMMENT_CREATED_BY = "<!--\r\ncreated with jantrunner\r\n-->\r\n";
 
 	// TODO
