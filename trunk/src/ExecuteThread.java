@@ -112,21 +112,24 @@ public class ExecuteThread extends Thread implements BuildListener {
 		if (button != null)
 			antrunner.clearButtonBgColor(button);
 		comp.clearBuildStatus();
-		for (String targetname : comp.getTaskNames()) {
-			String filename = comp.getFilename();
-			//start update timer
-			ProgressTimerTask task = new ProgressTimerTask(filename, targetname);
-			Timer timer = new Timer();
-			timer.scheduleAtFixedRate(task, 0, 500);
-			errorOccured = !antrunner.executeAntTarget(filename,
-					targetname, this);
-			timer.cancel();
-			if (errorOccured)
-				break;
+		String[] targetNames = comp.getTaskNames();
+		if (targetNames.length > 0) {
+			for (String targetname : targetNames) {
+				String filename = comp.getFilename();
+				//start update timer
+				ProgressTimerTask task = new ProgressTimerTask(filename, targetname);
+				Timer timer = new Timer();
+				timer.scheduleAtFixedRate(task, 0, 500);
+				errorOccured = !antrunner.executeAntTarget(filename,
+						targetname, this);
+				timer.cancel();
+				if (errorOccured)
+					break;
+			}
+			// set background color
+			if (button != null)
+				antrunner.setButtonBgColor(button, !errorOccured);
 		}
-		// set background color
-		if (button != null)
-			antrunner.setButtonBgColor(button, !errorOccured);
 	}// run
 	
 	private void updateProgress(String filename, String target, int percent, String info) {
