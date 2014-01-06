@@ -1,16 +1,17 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <config>
-<options logger="org.apache.tools.ant.listener.ProfileLogger" />
-<timer interval="20" execute="js.timer" file="javascript.xml" />
+<timer checked="false" execute="js.timer" file="javascript.xml" interval="20"/>
 <buttons>
-  <button name="#1" execute="js.simpletest1" file="javascript.xml" description="executes js.simpletest1"/>
-  <button name="#2" execute="js.simpletest2" file="javascript.xml" description="executes js.simpletest1"/>
-  <button name="fail" execute="js.fails.after.5seconds" file="javascript.xml" description="executes js.fails.after.5seconds"/>
+  <button description="executes js.simpletest1" execute="js.simpletest1" file="javascript.xml" name="#1"/>
+  <button description="executes js.simpletest1" execute="js.simpletest2" file="javascript.xml" name="#2"/>
+  <button description="executes js.fails.after.5seconds" execute="js.fails.after.5seconds" file="javascript.xml" name="fail"/>
 </buttons>
 <tabs>
- <tab name="JS" type="TaskList" file="javascript.xml" />
- <tab name="TextField" type="" source="AntTaskField.bsh" file="taskfield.xml" />
- <tab file="javascript.xml" />
- <tab name="Tree" type="TreeList" file="javascript.xml" />
+ <tab file="javascript.xml" name="JS" type="TaskList"/>
+ <tab file="taskfield.xml" name="TextField" source="AntTaskField.bsh" type=""/>
+ <tab file="javascript.xml"/>
+ <tab file="javascript.xml" name="Tree" type="TreeList"/>
+ <tab file="properties.xul" name="Properties" type="PropertyUI"/>
 </tabs>
+<options logger="org.apache.tools.ant.listener.TimestampedLogger"/>
 </config>

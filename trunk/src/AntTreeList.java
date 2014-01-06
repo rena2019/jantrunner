@@ -2,6 +2,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionAdapter;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Vector;
@@ -194,7 +195,10 @@ public class AntTreeList extends JTree implements AntRunnerComponent,
 	@Override
 	public void mouseClicked(MouseEvent e) {
 		// TODO Auto-generated method stub
-
+		
+		if (e.getClickCount() == 2) {
+			//TODO antrunner.executeAntTarget(filename, target, listener)
+		}
 	}
 
 	@Override
@@ -231,8 +235,7 @@ public class AntTreeList extends JTree implements AntRunnerComponent,
 	 */
 	@Override
 	public String[] getTaskNames() {
-		TreeNode root = (TreeNode) ((DefaultTreeModel) this.getModel())
-				.getRoot();
+		//TreeNode root = (TreeNode) ((DefaultTreeModel) this.getModel()).getRoot();
 		TreePath[] paths = this.getSelectionPaths();
 		String[] targets = new String[paths.length];
 		int arrayLen = 0;
@@ -248,6 +251,24 @@ public class AntTreeList extends JTree implements AntRunnerComponent,
 		String[] arr = new String[arrayLen];
 		System.arraycopy(targets, 0, arr, 0, arrayLen);
 		return arr;
+	}
+	
+	/**
+	 * Get selected items as AntTarget object array.
+	 * @return
+	 */
+	public AntTarget[] getSelectedAntTargets() {
+		TreePath[] paths = this.getSelectionPaths();
+		ArrayList<AntTarget> targets = new ArrayList<AntTarget>();
+		for (int i = 0; i < paths.length; i++) {
+			DefaultMutableTreeNode node = (DefaultMutableTreeNode) paths[i]
+					.getLastPathComponent();
+			if (node.isLeaf()) {
+				NodeInfo nodeInfo = (NodeInfo) node.getUserObject();
+				targets.add(new AntTarget(filename, nodeInfo.getTargetName()));
+			}
+		}
+		return (AntTarget[])(targets.toArray(new AntTarget[0]));
 	}
 
 	@Override
