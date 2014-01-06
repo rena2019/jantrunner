@@ -4,8 +4,12 @@
  */
 
 import java.awt.EventQueue;
+
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JList;
+import javax.swing.JPanel;
 
 import java.io.*;
 import java.util.Date;
@@ -16,8 +20,6 @@ import java.util.TimerTask;
 import java.text.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.InputEvent;
-import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
 import javax.swing.*;
@@ -26,12 +28,17 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Desktop;
-import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Toolkit;
 
 //XML
 import javax.xml.parsers.*;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+
 import org.w3c.dom.*;
 //ant tasks
 // API doc http://www.jajakarta.org/ant/ant-1.6.1/docs/mix/manual/api/overview-summary.html
@@ -58,9 +65,10 @@ import org.apache.tools.ant.*;
  2011-12-27 tasklist: double click starts task
  2012-02-04 some fixes, color button, default selected target, dumpTable
  2012-05-04 v0.4: AntTreeList
+ 2013-07-26 d&d handling started
+ 2013-12-xx batch list moved to class, button execution with treads, timer enable/disable
 
  TODO
-
  - timer thread for soft progressbar in AntRunnerTab
  - task -> target
  - AntRunnerFileTransferHandler: more generic / with interface ?
@@ -73,13 +81,11 @@ public class AntRunner /* extends JFrame */ {
 	private static final String TASK_LIST = "TaskList";
 	private static final String LOG_FILE = "log.txt";
 	private static final String DEFAULT_CONFIG_XML = "config.xml";
-	private static final String VERSION = "0.4";
+	private static final String VERSION = "0.5";
 	private static final String COMMENT_CREATED_BY = "<!--\r\ncreated with jantrunner\r\n-->\r\n";
 
 	// TODO
 	String ANT_FILES_PATH = null;
-	String ANTRUNNER_BATCH_FILE = "antrunner.xml";
-	String ANTRUNNER_BATCH_TASK = "batch";
 	String STATISTICS_DB = "antrunner.db";
 
 	// TODO config?
@@ -90,14 +96,17 @@ public class AntRunner /* extends JFrame */ {
 	Project project;
 	org.apache.tools.ant.BuildLogger logger = null;
 	String loggerClass;
+	String configFile = "";
+	//timer setting
+	String timer_ant_file;
+	String timer_ant_target;
+	long timer_delay_sec;
 	
 	String last_descr_build_file = "";
 	JFrame frame;
 
-	JPanel panelCmdButtons;
-	JButton btnAntBatchRun;
-	// ant batch list
-	JList lstBatch;
+	BatchList batchList;
+	ButtonPanel cmdButtonPanel;
 
 	// tools
 	JCheckBox chkPoll;
@@ -105,8 +114,9 @@ public class AntRunner /* extends JFrame */ {
 
 	JTabbedPane tabbedPane;
 	Timer timer = null;
-	JTextField txtTimerField;
-	JTextField loggerTextField;
+	//JTextField txtTimerField;
+	//JTextField loggerTextField;
+	JComboBox comboboxLogger;
 	JPanel configPanel;
 	AntRunnerTab moreTab;
 	
@@ -329,13 +339,23 @@ public class AntRunner /* extends JFrame */ {
 	 * Execute the selected targets of the given AntRunnerComponent in a thread. Change the background
 	 * color of the given button depending on the status
 	 * @param antRunnerComponent
-	 * @param button
+	 * @param button Background color of this button will be changed after target completed
 	 */
 	public void executeSelectedTargets(AntRunnerComponent antRunnerComponent, JButton button) {
 		ExecuteThread t = new ExecuteThread(this, antRunnerComponent, button);
 		t.start();
 	}
 
+	/**
+	 * Set the color of the button to default system color.
+	 * 
+	 * @param button
+	 */
+	void clearButtonBgColor(JButton button) {
+		button.setBackground((Color) Toolkit.getDefaultToolkit()
+				.getDesktopProperty("control"));
+	}
+	
 	/**
 	 * Change the color of the given button to green (ok = true), otherwise to
 	 * red.
@@ -345,16 +365,6 @@ public class AntRunner /* extends JFrame */ {
 			button.setBackground(Color.GREEN);
 		else
 			button.setBackground(Color.RED);
-	}
-
-	/**
-	 * Set the color of the buton to default system color.
-	 * 
-	 * @param button
-	 */
-	void clearButtonBgColor(JButton button) {
-		button.setBackground((Color) Toolkit.getDefaultToolkit()
-				.getDesktopProperty("control"));
 	}
 
 	/**
@@ -452,90 +462,6 @@ public class AntRunner /* extends JFrame */ {
 		return s;
 	}
 
-	/**
-	 * global action handler
-	 */
-	ActionListener buttonHandler = new ActionListener() {
-		public void actionPerformed(ActionEvent event) {
-
-			if (event.getSource() instanceof AntRunnerButton) {
-				AntRunnerButton btn = (AntRunnerButton) event.getSource();
-				// clear color
-				clearButtonBgColor(btn);
-				boolean passed = executeAntTarget(new File(btn.file).getAbsolutePath(),
-						btn.target);
-				//set red/green upon status
-				setButtonBgColor((JButton)btn, passed);
-			}
-		}
-	};
-	
-	private void writeBatchFile() {
-		String targets = "";
-		for (int i = 0; i < ((DefaultListModel) lstBatch.getModel())
-				.size(); i++) {
-			String s = ((DefaultListModel) lstBatch.getModel()).get(i)
-					.toString();
-			String file = s.substring(0, s.indexOf(";"));
-			String target = s.substring(s.indexOf(";") + 1);
-			if (i > 0)
-				targets += "\r\n";
-			targets += "  <ant antfile=\"" + file + "\" target=\"" + target
-					+ "\" />";
-		}
-		writeAntTaskfile(ANTRUNNER_BATCH_FILE, targets, ANTRUNNER_BATCH_TASK, "");
-	}
-
-	/**
-	 * button handler for ant batch list
-	 */
-	ActionListener antBatchHandler = new ActionListener() {
-		public void actionPerformed(ActionEvent event) {
-			//
-			int idx = 0;
-			if (event.getActionCommand() == "Run Batch") {
-				//
-				// print("run batch");
-				// <ant antfile="subproject/subbuild.xml" target="compile"/>
-				writeBatchFile();
-				setButtonBgColor((JButton) event.getSource(),
-						executeAntTarget(ANTRUNNER_BATCH_FILE, ANTRUNNER_BATCH_TASK));
-				
-			} else if (event.getActionCommand() == "Up") {
-				idx = lstBatch.getSelectedIndex();
-				if (idx > 0) {
-					String old = ((DefaultListModel) lstBatch.getModel()).get(
-							idx).toString();
-					((DefaultListModel) lstBatch.getModel())
-							.removeElementAt(idx);
-					((DefaultListModel) lstBatch.getModel()).insertElementAt(
-							old, idx - 1);
-					lstBatch.setSelectedIndex(idx - 1);
-				}
-			} else if (event.getActionCommand() == "Down") {
-				idx = lstBatch.getSelectedIndex();
-				if (idx < ((DefaultListModel) lstBatch.getModel()).size() - 1) {
-					String old = ((DefaultListModel) lstBatch.getModel()).get(
-							idx).toString();
-					((DefaultListModel) lstBatch.getModel())
-							.removeElementAt(idx);
-					((DefaultListModel) lstBatch.getModel()).insertElementAt(
-							old, idx + 1);
-					lstBatch.setSelectedIndex(idx + 1);
-				}
-			} else if (event.getActionCommand() == "Remove") {
-				// remove ite mfrom ant batch file
-				idx = lstBatch.getSelectedIndex();
-				if (idx >= 0)
-					((DefaultListModel) lstBatch.getModel()).remove(idx);
-				if (idx > ((DefaultListModel) lstBatch.getModel()).size() - 1)
-					idx = ((DefaultListModel) lstBatch.getModel()).size() - 1;
-				if (((DefaultListModel) lstBatch.getModel()).size() > 0)
-					lstBatch.setSelectedIndex(idx);
-			}
-		}
-	};
-
 	MouseMotionAdapter mouseMotionHandler = new MouseMotionAdapter() {
 		public void mouseMoved(MouseEvent e) {
 			if (e.getSource() instanceof AntTaskList) {
@@ -549,7 +475,7 @@ public class AntRunner /* extends JFrame */ {
 								.getModel()).size()) {
 					String s = ((DefaultListModel) ((JList) e.getSource())
 							.getModel()).get(idx).toString();
-					// display tooltiptext
+					// display tooltip text
 					String filename = s.substring(0, s.indexOf(";"));
 					String task = s.substring(s.indexOf(";") + 1);
 					String description = getAntDescription(filename, task);
@@ -560,38 +486,13 @@ public class AntRunner /* extends JFrame */ {
 		}
 	};
 
-	/**
-	 * Mouse handler: right click -> edit file
-	 */
-	MouseAdapter mouseHandler = new MouseAdapter() {
-		public void mouseClicked(MouseEvent e) {
-			if (e.getClickCount() == 1 && (e.getModifiers() & InputEvent.BUTTON3_MASK)
-					== InputEvent.BUTTON3_MASK) {
-				JList lst = ((JList) e.getSource());
-				/*
-				 * if (lst == lstTasks) { String s = ((DefaultListModel)
-				 * lstTasks.getModel()).get( index).toString(); String file =
-				 * s.substring(0, s.indexOf(";")); //String task =
-				 * s.substring(s.indexOf(";") + 1); exec(EDITOR_EXE + " " + new
-				 * File(ANT_FILES_PATH, file).getAbsolutePath(), false); } else
-				 */if (lst == lstBatch) {
-					// list on the right side (batch list)
-					writeBatchFile();
-					editFile(ANTRUNNER_BATCH_FILE);
-				}
-			}
-		}
-
-		public void mouseMoved(MouseEvent e) {
-			System.out.println(e.toString());
-			// int index = locationToIndex(pEvent.getPoint());
-		}
-	};
-
 	ActionListener toolsHandler = new ActionListener() {
 		public void actionPerformed(ActionEvent event) {
 			if (event.getSource() == chkPoll) {
-				// TODO setUpdateTimer();
+				setUpdateTimer(chkPoll.getModel().isSelected());
+			} else if (event.getSource() == comboboxLogger) {
+				setLoggerClass(comboboxLogger.getSelectedItem().toString());
+				updateConfig();
 			}
 			/*if (event.getSource() == btnFileChooser) {
 				JFileChooser fc = new JFileChooser();
@@ -608,35 +509,47 @@ public class AntRunner /* extends JFrame */ {
 		private String filename;
 		private String target;
 		private long delay;
+		private boolean checked;
 
-		MyTimerTask(String filename, String target, long delay) {
+		MyTimerTask(String filename, String target, long delay, boolean checked) {
 			this.filename = filename;
 			this.target = target;
 			this.delay = delay;
+			this.checked = checked;
 		}
 
 		public void run() {
 			// call ant task
 			executeAntTarget(filename, target);
-			setUpdateTimer(filename, target, delay);
+			setUpdateTimer(checked);
 		}
 	}
-
-	void setUpdateTimer(String file, String target, long delay_sec) {
-		if (chkPoll != null)
-			if (chkPoll.getModel().isSelected()) {
-			// set update timer
+	
+	void setUpdateTimer(boolean checked) {
+		if (chkPoll != null && timer_ant_file != null && timer_ant_target != null && timer_delay_sec > 5 && checked) {
+			// set/start update timer
 			if (timer == null)
 				timer = new Timer(true);
-			txtTimerField.setText(file + ";" + target + " (" + String.valueOf(delay_sec) + "sec)");
-			timer.schedule(new MyTimerTask(file, target, delay_sec),
-					delay_sec * 1000);
+			timer.schedule(new MyTimerTask(timer_ant_file, timer_ant_target, timer_delay_sec, checked),
+					timer_delay_sec * 1000);
 		} else {
 			// clear update timer
 			if (timer != null)
 				timer.cancel();
 			timer = null;
 		}
+	}
+	
+	private void setLoggerClass(String string) {
+		
+		try {
+			Class c;
+			c = Class.forName(string);
+			logger = (BuildLogger)c.newInstance();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
 	}
 
 	String replace(String str, String pattern, String replace) {
@@ -653,11 +566,6 @@ public class AntRunner /* extends JFrame */ {
 		return result.toString();
 	}
 
-	// return batch list on the right side (used to add items to the list)
-	public JList getBatchList() {
-		return lstBatch;
-	}
-
 	void writeAntTaskfile(String filename, String task, String taskname,
 			String additional) {
 		String antxml = "<project name=\"Run" + taskname + "\" default=\""
@@ -671,7 +579,8 @@ public class AntRunner /* extends JFrame */ {
 				new File(buildfile).getName(),
 				TASK_LIST,
 				buildfile,
-				"");
+				"",
+				this.cmdButtonPanel);
 	}
 	
 	/**
@@ -681,13 +590,14 @@ public class AntRunner /* extends JFrame */ {
 		configPanel.setVisible(false);
 	}
 
-	// read in the config file and create the specified GUI
+	/**
+	 * Read in the config file and create the specified GUI
+	 * @param xmlFile
+	 */
 	private void readConfig(String xmlFile) {
 		try {
-			// BufferedReader bf = new BufferedReader(new
-			// InputStreamReader(System.in));
-			// System.out.print("Enter XML File name: ");
-			// String xmlFile = bf.readLine();
+			//store file name
+			configFile = xmlFile;
 			File file = new File(xmlFile);
 			if (file.exists()) {
 				// Create a factory
@@ -711,18 +621,17 @@ public class AntRunner /* extends JFrame */ {
 						if (node instanceof Element) {
 							// a child element to process
 							Element child = (Element) node;
-							JButton btn = new AntRunnerButton(
+							AntTarget target = new AntTarget(
 									child.getAttribute("name"),
 									child.getAttribute("file"),
 									child.getAttribute("execute"),
 									child.getAttribute("description"));
-							btn.addActionListener(buttonHandler);
-							panelCmdButtons.add(btn);
+							cmdButtonPanel.addAntTarget(target, false);
 						}
 					}
 				} else {
 					// no buttons -> hide panel
-					panelCmdButtons.setVisible(false);
+					cmdButtonPanel.setVisible(false);
 				}
 				// options ----------------------
 				nodes = doc.getElementsByTagName("options");
@@ -750,7 +659,8 @@ public class AntRunner /* extends JFrame */ {
 								child.getAttribute("name"),
 								child.getAttribute("type"),
 								child.getAttribute("file"),
-								child.getAttribute("source"));
+								child.getAttribute("source"),
+								this.cmdButtonPanel);
 					}
 				}
 
@@ -762,9 +672,11 @@ public class AntRunner /* extends JFrame */ {
 					if (node instanceof Element) {
 						// a child element to process
 						Element child = (Element) node;
-						setUpdateTimer(child.getAttribute("file"),
-								child.getAttribute("execute"),
-								Long.parseLong(child.getAttribute("interval")));
+						timer_ant_file = child.getAttribute("file");
+						timer_ant_target = child.getAttribute("execute");
+						timer_delay_sec = Long.parseLong(child.getAttribute("interval"));
+						chkPoll.setText("Timer: " + timer_ant_file + ";" + timer_ant_target + " (" + String.valueOf(timer_delay_sec) + "sec)");
+						chkPoll.setSelected(Boolean.parseBoolean(child.getAttribute("checked")));
 					}
 				}
 				} else {
@@ -781,17 +693,78 @@ public class AntRunner /* extends JFrame */ {
 			System.exit(1);
 		}
 		try {
-			if (loggerClass == null)
+			if (loggerClass == null || loggerClass.equals(""))
 				loggerClass = "org.apache.tools.ant.DefaultLogger";
 			Class c = Class.forName(loggerClass);
 			logger = (BuildLogger)c.newInstance();
-			loggerTextField.setText(logger.getClass().getCanonicalName());
+			comboboxLogger.setSelectedItem(logger.getClass().getCanonicalName());
 		}
 		catch (Exception e) {
 			System.err.print(e.toString());
 			System.exit(1);
 		}
 	}
+	
+	public void updateConfig() {
+        File xmlFile = new File(configFile);
+        DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder dBuilder;
+        try {
+            dBuilder = dbFactory.newDocumentBuilder();
+            Document doc = dBuilder.parse(xmlFile);
+            doc.getDocumentElement().normalize();
+             
+            //update attribute value
+            Node node = null;
+            if (doc.getElementsByTagName("buttons").item(0) == null) {
+            	//add buttons node
+            	doc.getElementsByTagName("config").item(0).appendChild(doc.createElement("buttons"));
+            }
+            node = doc.getElementsByTagName("buttons").item(0);
+            NodeList buttons = doc.getElementsByTagName("button");
+            for(int i=0; i < cmdButtonPanel.getComponentCount(); i++) {
+	        	Node newChild = null;
+	        	AntRunnerButton btn =  (AntRunnerButton)cmdButtonPanel.getComponent(i);
+	        	//search for existing button
+	        	for(int j=0; j < buttons.getLength(); j++) {
+	        		if (buttons.item(j).getAttributes().getNamedItem("execute").getNodeValue().equals(btn.getTarget()) &&
+	        				buttons.item(j).getAttributes().getNamedItem("file").getNodeValue().equals(btn.getFilename())) {
+	        			newChild = buttons.item(j);
+	        			break;
+	        		}
+	        	}
+	        	if (newChild == null) {
+	        		newChild = doc.createElement("button");
+	        		((Element)newChild).setAttribute("name", "" /*TODO*/);
+	        		((Element)newChild).setAttribute("execute", btn.getTarget());
+	        		((Element)newChild).setAttribute("file", btn.getFilename());
+	        		node.appendChild(newChild);
+	        	}
+            }
+            if (doc.getElementsByTagName("options").item(0) == null) {
+            	//add config node
+            	doc.getElementsByTagName("config").item(0).appendChild(doc.createElement("options"));
+            }
+            node = doc.getElementsByTagName("options").item(0);
+            Attr attr = doc.createAttribute("logger");
+            if (node.getAttributes().getNamedItem("logger") != null) {
+            	attr = (Attr) node.getAttributes().getNamedItem("logger");
+            } 
+            attr.setNodeValue(comboboxLogger.getSelectedItem().toString());
+            node.getAttributes().setNamedItem(attr);
+            
+            //write the updated document to file
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer = transformerFactory.newTransformer();
+            DOMSource source = new DOMSource(doc);
+            StreamResult result = new StreamResult(new File(configFile));
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+            transformer.transform(source, result);
+             
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
 	
 	/**
 	 * Check if given filename is an ant build file.
@@ -866,7 +839,8 @@ public class AntRunner /* extends JFrame */ {
 	{
 		// AntTask
 		moreTab = new AntRunnerTab(this, tabbedPane, "+",
-				TASK_LIST, null, "");
+				TASK_LIST, null, "",
+				this.cmdButtonPanel);
 		// add drag-drop handler
 		moreTab.setTransferHandler(new AntRunnerFileTransferHandler(moreTab
 				.getTaskList()));
@@ -874,6 +848,11 @@ public class AntRunner /* extends JFrame */ {
 		//add config tab
 		tabbedPane.addTab("Config", configPanel);
 
+	}
+	
+	public void addToBatchList(AntTarget antTarget) {
+		batchList.addAntTarget(antTarget);
+		
 	}
 
 	/**
@@ -885,9 +864,9 @@ public class AntRunner /* extends JFrame */ {
 		frame.getContentPane().setLayout(new BorderLayout(5, 5));
 
 		// buttons
-		panelCmdButtons = new JPanel();
-		panelCmdButtons.setLayout(new FlowLayout());
-		frame.getContentPane().add(panelCmdButtons, BorderLayout.NORTH);
+		cmdButtonPanel = new ButtonPanel(this);
+		cmdButtonPanel.setLayout(new FlowLayout());
+		frame.getContentPane().add(cmdButtonPanel, BorderLayout.NORTH);
 
 		splitPane = new JSplitPane();
 		frame.getContentPane().add(splitPane, BorderLayout.CENTER);
@@ -897,64 +876,50 @@ public class AntRunner /* extends JFrame */ {
 		// frame.getContentPane().add(panelFrm, BorderLayout.WEST);
 		splitPane.setLeftComponent(panelFrm);
 
-		// ant task batch (right side)
-		JPanel panelAntBatch = new JPanel(new BorderLayout());
-		// listbox
-		lstBatch = new JList(new DefaultListModel());
-		// mouse click event handler
-		lstBatch.addMouseListener(mouseHandler);
-		// frame.getContentPane().add(panelAntBatch, BorderLayout.CENTER);
-		splitPane.setRightComponent(panelAntBatch);
-		panelAntBatch.add(new JLabel("Batch"), BorderLayout.NORTH);
-		panelAntBatch.add(lstBatch, BorderLayout.CENTER);
-		btnAntBatchRun = new JButton("Run Batch");
-		btnAntBatchRun.addActionListener(antBatchHandler);
-		JButton btnAntBatchRemove = new JButton("Remove");
-		btnAntBatchRemove.addActionListener(antBatchHandler);
-		JButton btnAntBatchUp = new JButton("Up");
-		btnAntBatchUp.addActionListener(antBatchHandler);
-		JButton btnAntBatchDown = new JButton("Down");
-		btnAntBatchDown.addActionListener(antBatchHandler);
-		JPanel panelBatchButtons = new JPanel(new FlowLayout());
-
-		panelBatchButtons.add(btnAntBatchRemove);
-		panelBatchButtons.add(btnAntBatchUp);
-		panelBatchButtons.add(btnAntBatchDown);
-		panelBatchButtons.add(btnAntBatchRun);
-		panelAntBatch.add(panelBatchButtons, BorderLayout.SOUTH);
+		batchList = new BatchList(this);
+		splitPane.setRightComponent(batchList);
 
 		tabbedPane = new JTabbedPane();
 		panelFrm.add(tabbedPane, BorderLayout.CENTER);
 		
 		//prepare adv gui
 		//tools tab		
-		configPanel = new JPanel(new BorderLayout());
-		JPanel toolsChildPanel = new JPanel(new FlowLayout());
+		configPanel = new JPanel(/*new BorderLayout()*/);
+		//setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+		
+		
+		JPanel toolsChildPanel = new JPanel();
+		//toolsChildPanel.setLayout(new BorderLayout());
+		toolsChildPanel.setLayout(new BoxLayout(toolsChildPanel, BoxLayout.Y_AXIS));
+		
 		configPanel.add(toolsChildPanel, BorderLayout.CENTER);
 
 		chkPoll = new JCheckBox("Timer");
-		chkPoll.setSelected(true);
 		chkPoll.addActionListener(toolsHandler);
 		toolsChildPanel.add(chkPoll);
+		
 
 		// todo label/list ?
-		txtTimerField = new JTextField();
-		txtTimerField.setEditable(false);
-		toolsChildPanel.add(txtTimerField);
+		//txtTimerField = new JTextField();
+		//txtTimerField.setEditable(false);
+		//toolsChildPanel.add(txtTimerField);
 		
 		toolsChildPanel.add(new JLabel("Logger: "));
-		loggerTextField = new JTextField();
-		loggerTextField.setEditable(false);
-		toolsChildPanel.add(loggerTextField);
+		comboboxLogger = new JComboBox();
+		comboboxLogger.addItem("org.apache.tools.ant.DefaultLogger");
+		comboboxLogger.addItem("org.apache.tools.ant.NoBannerLogger");
+		comboboxLogger.addItem("org.apache.tools.ant.XmlLogger");
+		comboboxLogger.addItem("org.apache.tools.ant.listener.TimestampedLogger");
+		comboboxLogger.addItem("org.apache.tools.ant.listener.ProfileLogger");
+		comboboxLogger.addItem("org.apache.tools.ant.listener.BigProjectLogger");
+		comboboxLogger.addItem("org.apache.tools.ant.listener.SimpleBigProjectLogger");
+		toolsChildPanel.add(comboboxLogger);
+		comboboxLogger.addActionListener(toolsHandler);
 		
-
 		
-
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		// frame.setContentPane(panel);
 		frame.pack();
 		frame.setVisible(true);
 	}
-
 }// AntRunner
-

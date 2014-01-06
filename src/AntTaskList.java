@@ -149,7 +149,13 @@ class AntTaskList extends JList implements AntRunnerComponent, MouseListener /*,
 	 */
 	private int getIndex(String target){
 		DefaultListModel model = ((DefaultListModel) this.getModel());
-		return model.indexOf(target);
+		for(int i=0; i < model.getSize(); i++) {
+			AntTarget t = (AntTarget) model.getElementAt(i);
+			if (t.target.equals(target))
+				return i;
+		}
+		//should never happen
+		return -1;
 	}
 
 	//
@@ -176,18 +182,18 @@ class AntTaskList extends JList implements AntRunnerComponent, MouseListener /*,
 				String name = en.nextElement().toString();
 				if (name != "")
 					v.add(name);
-
 			}
 			Collections.sort(v);
 			en = v.elements();
 
 			while (en.hasMoreElements()) {
-				String name = en.nextElement().toString();
-				if (name != "") {
-					String s = buildfile.getName();
+				String targetName = en.nextElement().toString();
+				if (targetName != "") {
+					String fileName = buildfile.getName();
 					if (bAddPath)
-						s = buildfile.getCanonicalPath();
-					((DefaultListModel) this.getModel()).addElement(name);
+						fileName = buildfile.getCanonicalPath();
+					Target t = (Target)project.getTargets().get(targetName);
+					((DefaultListModel) this.getModel()).addElement(new AntTarget(targetName, fileName, targetName, t.getDescription() ));
 				}
 			}
 			progress = new int[((DefaultListModel) this.getModel()).getSize()];
@@ -390,5 +396,16 @@ class AntTaskList extends JList implements AntRunnerComponent, MouseListener /*,
 	public void mouseReleased(MouseEvent e) {
 		// TODO Auto-generated method stub
 		
+	}
+
+	public AntTarget[] getSelectedAntTargets() {
+		//TODO
+		AntTarget[] targets = new AntTarget[getSelectedValues().length];
+		for(int i=0; i < targets.length;i++) {
+			Object o = getSelectedValues()[i];
+			//targets[i] = new AntTarget(this.filename, getSelectedValues()[i].toString());
+			targets[i] = (AntTarget)o;
+		}
+		return targets;
 	}
 }// AntTaskList

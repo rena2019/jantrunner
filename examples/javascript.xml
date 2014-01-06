@@ -1,5 +1,13 @@
 <project name="JavaScript" default="js.theDefaultTarget">
 
+<property file="properties.xul.properties" />
+
+<target name="js.textproperty" description="text defined in the text box ">
+ <script language="javascript">
+   self.log("text_property: " + project.getProperty("text_property"));
+ </script>
+</target>
+	
 <target name="js.simpletest1" description="simple test #1">
  <script language="javascript">
    self.log("java script test #1");

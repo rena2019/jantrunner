@@ -3,6 +3,7 @@
  * 
  * 
  */
+import java.awt.Component;
 import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -26,6 +27,12 @@ public class ExecuteThread extends Thread implements BuildListener {
 	Timer timer = null;
 	private Date dateStart;
 
+	/**
+	 * Class that executes ant target in a thread and fires progress events.
+	 * @param antrunner
+	 * @param comp
+	 * @param button
+	 */
 	ExecuteThread(AntRunner antrunner, AntRunnerComponent comp, JButton button) {
 		this.antrunner = antrunner;
 		this.comp = comp;
@@ -113,7 +120,7 @@ public class ExecuteThread extends Thread implements BuildListener {
 			antrunner.clearButtonBgColor(button);
 		comp.clearBuildStatus();
 		String[] targetNames = comp.getTaskNames();
-		if (targetNames.length > 0) {
+		if (targetNames != null && targetNames.length > 0) {
 			for (String targetname : targetNames) {
 				String filename = comp.getFilename();
 				//start update timer
@@ -134,26 +141,21 @@ public class ExecuteThread extends Thread implements BuildListener {
 	
 	private void updateProgress(String filename, String target, int percent, String info) {
 		this.percent = percent;
-		if (comp instanceof AntTaskList)
-			comp.progress(percent, AntRunnerComponent.ProgressState.RUNNING,
+		comp.progress(percent, AntRunnerComponent.ProgressState.RUNNING,
 				info, null);
 		//System.out.print("updateProgress: " + filename + ", " + target);
 	}
 
 	//@Override
 	public void buildFinished(BuildEvent arg0) {
-		// TODO Auto-generated method stub
 		percent = 100;
-		if (comp instanceof AntTaskList)
-			comp.progress(percent, AntRunnerComponent.ProgressState.FINISHED, "", arg0);
+		comp.progress(percent, AntRunnerComponent.ProgressState.FINISHED, "", arg0);
 	}
 
 	//@Override
 	public void buildStarted(BuildEvent arg0) {
-		// TODO Auto-generated method stub
 		percent = 0;
-		if (comp instanceof AntTaskList)
-			comp.progress(percent, AntRunnerComponent.ProgressState.STARTED, "", arg0);
+		comp.progress(percent, AntRunnerComponent.ProgressState.STARTED, "", arg0);
 	}
 
 	//@Override
@@ -169,16 +171,14 @@ public class ExecuteThread extends Thread implements BuildListener {
 	public void targetFinished(BuildEvent arg0) {
 		// TODO Auto-generated method stub
 		percent = 100;
-		if (comp instanceof AntTaskList)
-			comp.progress(percent, AntRunnerComponent.ProgressState.FINISHED, "", arg0);
+		comp.progress(percent, AntRunnerComponent.ProgressState.FINISHED, "", arg0);
 	}
 
 	//@Override
 	public void targetStarted(BuildEvent arg0) {
 		// TODO Auto-generated method stub
 		percent = 0;
-		if (comp instanceof AntTaskList)
-			comp.progress(percent, AntRunnerComponent.ProgressState.STARTED, "", arg0);
+		comp.progress(percent, AntRunnerComponent.ProgressState.STARTED, "", arg0);
 	}
 
 	//@Override
