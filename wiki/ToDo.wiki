@@ -8,7 +8,7 @@
  * ~~use thread for target execution (button)~~
  * ~~use thread for target execution (batch file)~~
  * add execution options (config.xml)
- * drag & drop
+ * ~~drag & drop~~
  * warning dialog if tasks running and user pressed close button
  * task kill ?
  * ~~tab type: Treeview -> TreeList~~
