@@ -2,4 +2,4 @@
 mkdir -p lib
 cp ../jantrunner.jar .
 cp ../lib/*.* lib
-java -jar jantrunner.jar 
+java -cp /usr/share/ant/lib/*:jantrunner.jar:lib/* AntRunner
