@@ -2,4 +2,4 @@
 mkdir lib
 copy ..\jantrunner.jar .
 copy ..\lib\*.* lib
-java -jar jantrunner.jar 
+java -cp %ANT_HOME%\lib\*;jantrunner.jar;lib\* AntRunner
